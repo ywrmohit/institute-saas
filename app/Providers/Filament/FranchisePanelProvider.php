@@ -26,7 +26,7 @@ class FranchisePanelProvider extends PanelProvider
         return $panel
             ->id('franchise')
             ->path('app')
-            ->login()
+            ->login(\App\Filament\Pages\Auth\FranchiseLogin::class)
             ->tenant(Franchise::class, slugAttribute: 'slug')
             ->brandName('EduPulse Institute Hub')
             ->colors([

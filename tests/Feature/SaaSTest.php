@@ -296,4 +296,31 @@ class SaaSTest extends TestCase
         $response->assertSessionHasErrors('data.email');
         $this->assertGuest();
     }
+
+    /** Test 20: Livewire Admin Login Smoothly Routes Franchise Owner to Tenant Hub */
+    public function test_livewire_admin_login_redirects_franchise_owner_to_tenant_portal(): void
+    {
+        \Livewire\Livewire::test(\App\Filament\Pages\Auth\AdminLogin::class)
+            ->set('data.email', 'owner@apextech.com')
+            ->set('data.password', 'password')
+            ->call('authenticate')
+            ->assertRedirect();
+
+        $this->assertAuthenticated();
+        $this->assertEquals('franchise_owner', auth()->user()->role);
+    }
+
+    /** Test 21: Livewire Franchise Login Authenticates Franchise Staff */
+    public function test_livewire_franchise_login_authenticates_franchise_owner(): void
+    {
+        \Filament\Facades\Filament::setCurrentPanel(\Filament\Facades\Filament::getPanel('franchise'));
+
+        \Livewire\Livewire::test(\App\Filament\Pages\Auth\FranchiseLogin::class)
+            ->set('data.email', 'owner@apextech.com')
+            ->set('data.password', 'password')
+            ->call('authenticate')
+            ->assertRedirect();
+
+        $this->assertAuthenticated();
+    }
 }
