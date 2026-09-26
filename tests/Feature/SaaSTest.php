@@ -152,10 +152,20 @@ class SaaSTest extends TestCase
     /** Test 10: Fee Service Installment & Payment Calculation */
     public function test_fee_service_invoice_and_payment_recalculation(): void
     {
-        $invoice = FeeInvoice::first();
-        $this->assertNotNull($invoice);
+        $student = Student::first();
+        $this->assertNotNull($student);
 
-        $initialPending = $invoice->pending_amount;
+        $invoice = FeeInvoice::create([
+            'franchise_id' => $student->franchise_id,
+            'branch_id' => $student->branch_id,
+            'student_id' => $student->id,
+            'invoice_number' => 'INV-TEST-' . uniqid(),
+            'total_amount' => 5000.00,
+            'paid_amount' => 0.00,
+            'pending_amount' => 5000.00,
+            'status' => 'pending',
+            'due_date' => now()->addDays(30),
+        ]);
 
         $feeService = app(FeeService::class);
         $payment = $feeService->recordPayment(
@@ -166,7 +176,9 @@ class SaaSTest extends TestCase
         );
 
         $invoice->refresh();
-        $this->assertEquals($initialPending - 1000.00, $invoice->pending_amount);
+        $this->assertEquals(4000.00, $invoice->pending_amount);
+        $this->assertEquals(1000.00, $invoice->paid_amount);
+        $this->assertEquals('partially_paid', $invoice->status);
     }
 
     /** Test 11: AI Retention & Risk Insight Service */
@@ -244,5 +256,44 @@ class SaaSTest extends TestCase
 
         $response = $this->actingAs($owner)->get("/app/{$franchise->slug}");
         $response->assertStatus(200);
+    }
+
+    /** Test 17: Admin Login Native POST Fallback */
+    public function test_admin_login_post_redirects_super_admin(): void
+    {
+        $response = $this->post('/admin/login', [
+            'email' => 'admin@edupulse.io',
+            'password' => 'password',
+        ]);
+
+        $response->assertRedirect('/admin');
+        $this->assertAuthenticated();
+    }
+
+    /** Test 18: Franchise App Login Native POST Fallback */
+    public function test_app_login_post_redirects_franchise_owner(): void
+    {
+        $franchise = Franchise::first();
+        $owner = User::where('role', 'franchise_owner')->where('franchise_id', $franchise->id)->first();
+
+        $response = $this->post('/app/login', [
+            'email' => $owner->email,
+            'password' => 'password',
+        ]);
+
+        $response->assertRedirect("/app/{$franchise->slug}");
+        $this->assertAuthenticated();
+    }
+
+    /** Test 19: Admin Login Invalid Credentials Fails Gracefully */
+    public function test_admin_login_post_with_invalid_credentials_fails(): void
+    {
+        $response = $this->post('/admin/login', [
+            'email' => 'admin@edupulse.io',
+            'password' => 'wrongpassword',
+        ]);
+
+        $response->assertSessionHasErrors('data.email');
+        $this->assertGuest();
     }
 }
