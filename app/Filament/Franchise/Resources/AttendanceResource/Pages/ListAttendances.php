@@ -16,4 +16,24 @@ class ListAttendances extends ListRecords
             Actions\CreateAction::make(),
         ];
     }
+
+    public function getTabs(): array
+    {
+        return [
+            'all' => \Filament\Resources\Pages\ListRecords\Tab::make('All Sessions')
+                ->badge(\App\Models\Attendance::count()),
+            'present' => \Filament\Resources\Pages\ListRecords\Tab::make('Present')
+                ->badge(\App\Models\Attendance::where('status', 'present')->count())
+                ->badgeColor('success')
+                ->modifyQueryUsing(fn($query) => $query->where('status', 'present')),
+            'absent' => \Filament\Resources\Pages\ListRecords\Tab::make('Absent')
+                ->badge(\App\Models\Attendance::where('status', 'absent')->count())
+                ->badgeColor('danger')
+                ->modifyQueryUsing(fn($query) => $query->where('status', 'absent')),
+            'late' => \Filament\Resources\Pages\ListRecords\Tab::make('Late')
+                ->badge(\App\Models\Attendance::where('status', 'late')->count())
+                ->badgeColor('warning')
+                ->modifyQueryUsing(fn($query) => $query->where('status', 'late')),
+        ];
+    }
 }

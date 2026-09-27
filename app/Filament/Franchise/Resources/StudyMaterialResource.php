@@ -20,6 +20,35 @@ class StudyMaterialResource extends Resource
     protected static ?string $navigationGroup = 'Operations';
     protected static ?int $navigationSort = 2;
 
+    public static function canViewAny(): bool
+    {
+        $user = auth()->user();
+        return $user && ($user->isSuperAdmin() || $user->can('view_study_materials'));
+    }
+
+    public static function canCreate(): bool
+    {
+        $user = auth()->user();
+        return $user && ($user->isSuperAdmin() || $user->can('manage_study_materials'));
+    }
+
+    public static function canEdit(\Illuminate\Database\Eloquent\Model $record): bool
+    {
+        $user = auth()->user();
+        return $user && ($user->isSuperAdmin() || $user->can('manage_study_materials'));
+    }
+
+    public static function canDelete(\Illuminate\Database\Eloquent\Model $record): bool
+    {
+        $user = auth()->user();
+        return $user && ($user->isSuperAdmin() || $user->can('manage_study_materials'));
+    }
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return static::canViewAny();
+    }
+
     public static function form(Form $form): Form
     {
         return $form
@@ -115,7 +144,13 @@ class StudyMaterialResource extends Resource
                         'video_link' => 'Video Link',
                         'document' => 'Document',
                     ]),
+                Tables\Filters\TernaryFilter::make('is_published')
+                    ->label('Publication Status')
+                    ->trueLabel('Published Only')
+                    ->falseLabel('Drafts Only'),
             ])
+            ->filtersLayout(Tables\Enums\FiltersLayout::AboveContentCollapsible)
+            ->filtersFormColumns(3)
             ->actions([
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),

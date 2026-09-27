@@ -16,4 +16,20 @@ class ListCertificates extends ListRecords
             Actions\CreateAction::make(),
         ];
     }
+
+    public function getTabs(): array
+    {
+        return [
+            'all' => \Filament\Resources\Pages\ListRecords\Tab::make('All Certificates')
+                ->badge(\App\Models\Certificate::count()),
+            'issued' => \Filament\Resources\Pages\ListRecords\Tab::make('Active Issued')
+                ->badge(\App\Models\Certificate::where('status', 'issued')->count())
+                ->badgeColor('success')
+                ->modifyQueryUsing(fn($query) => $query->where('status', 'issued')),
+            'revoked' => \Filament\Resources\Pages\ListRecords\Tab::make('Revoked')
+                ->badge(\App\Models\Certificate::where('status', 'revoked')->count())
+                ->badgeColor('danger')
+                ->modifyQueryUsing(fn($query) => $query->where('status', 'revoked')),
+        ];
+    }
 }

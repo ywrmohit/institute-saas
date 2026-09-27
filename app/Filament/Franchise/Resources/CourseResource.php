@@ -18,6 +18,35 @@ class CourseResource extends Resource
     protected static ?string $navigationGroup = 'Academics';
     protected static ?int $navigationSort = 1;
 
+    public static function canViewAny(): bool
+    {
+        $user = auth()->user();
+        return $user && ($user->isSuperAdmin() || $user->can('view_courses'));
+    }
+
+    public static function canCreate(): bool
+    {
+        $user = auth()->user();
+        return $user && ($user->isSuperAdmin() || $user->can('manage_courses'));
+    }
+
+    public static function canEdit(\Illuminate\Database\Eloquent\Model $record): bool
+    {
+        $user = auth()->user();
+        return $user && ($user->isSuperAdmin() || $user->can('manage_courses'));
+    }
+
+    public static function canDelete(\Illuminate\Database\Eloquent\Model $record): bool
+    {
+        $user = auth()->user();
+        return $user && ($user->isSuperAdmin() || $user->can('manage_courses'));
+    }
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return static::canViewAny();
+    }
+
     public static function form(Form $form): Form
     {
         return $form
@@ -169,6 +198,8 @@ class CourseResource extends Resource
                         'archived' => 'Archived',
                     ]),
             ])
+            ->filtersLayout(Tables\Enums\FiltersLayout::AboveContentCollapsible)
+            ->filtersFormColumns(2)
             ->actions([
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),

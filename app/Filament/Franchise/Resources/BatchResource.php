@@ -19,6 +19,49 @@ class BatchResource extends Resource
     protected static ?string $navigationGroup = 'Academics';
     protected static ?int $navigationSort = 2;
 
+    public static function canViewAny(): bool
+    {
+        $user = auth()->user();
+        return $user && ($user->isSuperAdmin() || $user->can('view_batches'));
+    }
+
+    public static function canCreate(): bool
+    {
+        $user = auth()->user();
+        return $user && ($user->isSuperAdmin() || $user->can('manage_batches'));
+    }
+
+    public static function canEdit(\Illuminate\Database\Eloquent\Model $record): bool
+    {
+        $user = auth()->user();
+        return $user && ($user->isSuperAdmin() || $user->can('manage_batches'));
+    }
+
+    public static function canDelete(\Illuminate\Database\Eloquent\Model $record): bool
+    {
+        $user = auth()->user();
+        return $user && ($user->isSuperAdmin() || $user->can('manage_batches'));
+    }
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return static::canViewAny();
+    }
+
+    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        $query = parent::getEloquentQuery();
+        $user = auth()->user();
+
+        if ($user?->isTrainer()) {
+            $query->where('trainer_id', $user->id);
+        } elseif ($user?->isBranchAdmin() && $user->branch_id) {
+            $query->where('branch_id', $user->branch_id);
+        }
+
+        return $query;
+    }
+
     public static function form(Form $form): Form
     {
         return $form
@@ -118,13 +161,28 @@ class BatchResource extends Resource
                 Tables\Filters\SelectFilter::make('course_id')
                     ->relationship('course', 'name')
                     ->label('Course'),
+                Tables\Filters\SelectFilter::make('trainer_id')
+                    ->relationship('trainer', 'name')
+                    ->label('Trainer'),
                 Tables\Filters\SelectFilter::make('status')
                     ->options([
                         'upcoming' => 'Upcoming',
                         'active' => 'Active',
                         'completed' => 'Completed',
                     ]),
+                Tables\Filters\Filter::make('start_date')
+                    ->form([
+                        Forms\Components\DatePicker::make('from')->label('Started After'),
+                        Forms\Components\DatePicker::make('until')->label('Started Before'),
+                    ])
+                    ->query(function ($query, array $data) {
+                        return $query
+                            ->when($data['from'], fn($q, $d) => $q->whereDate('start_date', '>=', $d))
+                            ->when($data['until'], fn($q, $d) => $q->whereDate('start_date', '<=', $d));
+                    }),
             ])
+            ->filtersLayout(Tables\Enums\FiltersLayout::AboveContentCollapsible)
+            ->filtersFormColumns(4)
             ->actions([
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),

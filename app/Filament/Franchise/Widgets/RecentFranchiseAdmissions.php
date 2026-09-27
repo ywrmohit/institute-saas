@@ -15,9 +15,19 @@ class RecentFranchiseAdmissions extends BaseWidget
     public function table(Table $table): Table
     {
         return $table
-            ->query(
-                Student::query()->latest()->limit(5)
-            )
+            ->query(function () {
+                $user = auth()->user();
+                $query = Student::query()->latest();
+
+                if ($user && $user->isTrainer()) {
+                    $myBatchIds = \App\Models\Batch::where('trainer_id', $user->id)->pluck('id');
+                    $query->whereHas('enrollments', fn($q) => $q->whereIn('batch_id', $myBatchIds));
+                } elseif ($user && $user->isBranchAdmin() && $user->branch_id) {
+                    $query->where('branch_id', $user->branch_id);
+                }
+
+                return $query->limit(5);
+            })
             ->heading('Recent Student Admissions')
             ->columns([
                 Tables\Columns\ImageColumn::make('photo')

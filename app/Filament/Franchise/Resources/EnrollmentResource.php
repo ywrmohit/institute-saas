@@ -21,6 +21,20 @@ class EnrollmentResource extends Resource
     protected static ?string $navigationGroup = 'Student Admissions';
     protected static ?int $navigationSort = 2;
 
+    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        $query = parent::getEloquentQuery();
+        $user = auth()->user();
+
+        if ($user?->isBranchAdmin() && $user->branch_id) {
+            $query->where('branch_id', $user->branch_id);
+        } elseif ($user?->isTrainer()) {
+            $query->whereHas('batch', fn($q) => $q->where('trainer_id', $user->id));
+        }
+
+        return $query;
+    }
+
     public static function form(Form $form): Form
     {
         return $form

@@ -21,6 +21,46 @@ class FeeInvoiceResource extends Resource
     protected static ?string $navigationGroup = 'Financials';
     protected static ?int $navigationSort = 1;
 
+    public static function canViewAny(): bool
+    {
+        $user = auth()->user();
+        return $user && ($user->isSuperAdmin() || $user->can('view_fee_invoices'));
+    }
+
+    public static function canCreate(): bool
+    {
+        $user = auth()->user();
+        return $user && ($user->isSuperAdmin() || $user->can('manage_fee_invoices'));
+    }
+
+    public static function canEdit(\Illuminate\Database\Eloquent\Model $record): bool
+    {
+        $user = auth()->user();
+        return $user && ($user->isSuperAdmin() || $user->can('manage_fee_invoices'));
+    }
+
+    public static function canDelete(\Illuminate\Database\Eloquent\Model $record): bool
+    {
+        $user = auth()->user();
+        return $user && ($user->isSuperAdmin() || $user->can('manage_fee_invoices'));
+    }
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return static::canViewAny();
+    }
+
+    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        $query = parent::getEloquentQuery();
+
+        if (auth()->user()?->isBranchAdmin() && auth()->user()->branch_id) {
+            $query->where('branch_id', auth()->user()->branch_id);
+        }
+
+        return $query;
+    }
+
     public static function form(Form $form): Form
     {
         return $form
@@ -146,17 +186,28 @@ class FeeInvoiceResource extends Resource
                     ->sortable(),
             ])
             ->filters([
+                Tables\Filters\SelectFilter::make('branch_id')
+                    ->relationship('branch', 'name')
+                    ->label('Branch')
+                    ->preload(),
                 Tables\Filters\SelectFilter::make('status')
                     ->options([
-                        'unpaid' => 'Unpaid',
+                        'pending' => 'Pending',
                         'partially_paid' => 'Partially Paid',
                         'paid' => 'Paid',
                         'overdue' => 'Overdue',
                     ]),
-                Tables\Filters\SelectFilter::make('branch_id')
-                    ->relationship('branch', 'name')
-                    ->label('Branch'),
-            ])
+                Tables\Filters\Filter::make('due_date')
+                    ->form([
+                        Forms\Components\DatePicker::make('due_from')->label('Due From'),
+                        Forms\Components\DatePicker::make('due_until')->label('Due Until'),
+                    ])
+                    ->query(function (\Illuminate\Database\Eloquent\Builder $query, array $data): \Illuminate\Database\Eloquent\Builder {
+                        return $query
+                            ->when($data['due_from'] ?? null, fn($q, $d) => $q->whereDate('due_date', '>=', $d))
+                            ->when($data['due_until'] ?? null, fn($q, $d) => $q->whereDate('due_date', '<=', $d));
+                    }),
+            ], layout: Tables\Enums\FiltersLayout::AboveContentCollapsible)
             ->actions([
                 Tables\Actions\Action::make('record_payment')
                     ->label('Collect Payment')

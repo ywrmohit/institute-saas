@@ -21,6 +21,49 @@ class AttendanceResource extends Resource
     protected static ?string $navigationGroup = 'Operations';
     protected static ?int $navigationSort = 1;
 
+    public static function canViewAny(): bool
+    {
+        $user = auth()->user();
+        return $user && ($user->isSuperAdmin() || $user->can('view_attendance'));
+    }
+
+    public static function canCreate(): bool
+    {
+        $user = auth()->user();
+        return $user && ($user->isSuperAdmin() || $user->can('mark_attendance'));
+    }
+
+    public static function canEdit(\Illuminate\Database\Eloquent\Model $record): bool
+    {
+        $user = auth()->user();
+        return $user && ($user->isSuperAdmin() || $user->can('mark_attendance'));
+    }
+
+    public static function canDelete(\Illuminate\Database\Eloquent\Model $record): bool
+    {
+        $user = auth()->user();
+        return $user && ($user->isSuperAdmin() || $user->can('mark_attendance'));
+    }
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return static::canViewAny();
+    }
+
+    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        $query = parent::getEloquentQuery();
+        $user = auth()->user();
+
+        if ($user?->isTrainer()) {
+            $query->whereHas('batch', fn($q) => $q->where('trainer_id', $user->id));
+        } elseif ($user?->isBranchAdmin() && $user->branch_id) {
+            $query->where('branch_id', $user->branch_id);
+        }
+
+        return $query;
+    }
+
     public static function form(Form $form): Form
     {
         return $form
@@ -119,12 +162,17 @@ class AttendanceResource extends Resource
                     ]),
                 Tables\Filters\Filter::make('date')
                     ->form([
-                        Forms\Components\DatePicker::make('attendance_date')->label('Date'),
+                        Forms\Components\DatePicker::make('from')->label('Date From'),
+                        Forms\Components\DatePicker::make('until')->label('Date Until'),
                     ])
                     ->query(function ($query, array $data) {
-                        return $query->when($data['attendance_date'], fn($q, $d) => $q->whereDate('date', $d));
+                        return $query
+                            ->when($data['from'], fn($q, $d) => $q->whereDate('date', '>=', $d))
+                            ->when($data['until'], fn($q, $d) => $q->whereDate('date', '<=', $d));
                     }),
             ])
+            ->filtersLayout(Tables\Enums\FiltersLayout::AboveContentCollapsible)
+            ->filtersFormColumns(3)
             ->headerActions([
                 Tables\Actions\Action::make('batch_mark')
                     ->label('Bulk Mark Batch Attendance')

@@ -20,6 +20,46 @@ class PaymentResource extends Resource
     protected static ?string $navigationGroup = 'Financials';
     protected static ?int $navigationSort = 2;
 
+    public static function canViewAny(): bool
+    {
+        $user = auth()->user();
+        return $user && ($user->isSuperAdmin() || $user->can('view_payments'));
+    }
+
+    public static function canCreate(): bool
+    {
+        $user = auth()->user();
+        return $user && ($user->isSuperAdmin() || $user->can('record_payments'));
+    }
+
+    public static function canEdit(\Illuminate\Database\Eloquent\Model $record): bool
+    {
+        $user = auth()->user();
+        return $user && ($user->isSuperAdmin() || $user->can('record_payments'));
+    }
+
+    public static function canDelete(\Illuminate\Database\Eloquent\Model $record): bool
+    {
+        $user = auth()->user();
+        return $user && ($user->isSuperAdmin() || $user->can('record_payments'));
+    }
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return static::canViewAny();
+    }
+
+    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        $query = parent::getEloquentQuery();
+
+        if (auth()->user()?->isBranchAdmin() && auth()->user()->branch_id) {
+            $query->where('branch_id', auth()->user()->branch_id);
+        }
+
+        return $query;
+    }
+
     public static function form(Form $form): Form
     {
         return $form
@@ -122,7 +162,19 @@ class PaymentResource extends Resource
                 Tables\Filters\SelectFilter::make('branch_id')
                     ->relationship('branch', 'name')
                     ->label('Branch'),
+                Tables\Filters\Filter::make('payment_date')
+                    ->form([
+                        Forms\Components\DatePicker::make('from')->label('Payment Date From'),
+                        Forms\Components\DatePicker::make('until')->label('Payment Date Until'),
+                    ])
+                    ->query(function ($query, array $data) {
+                        return $query
+                            ->when($data['from'], fn($q, $d) => $q->whereDate('payment_date', '>=', $d))
+                            ->when($data['until'], fn($q, $d) => $q->whereDate('payment_date', '<=', $d));
+                    }),
             ])
+            ->filtersLayout(Tables\Enums\FiltersLayout::AboveContentCollapsible)
+            ->filtersFormColumns(3)
             ->actions([
                 Tables\Actions\Action::make('print_receipt')
                     ->label('Print Receipt')

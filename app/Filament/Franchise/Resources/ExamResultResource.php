@@ -20,6 +20,35 @@ class ExamResultResource extends Resource
     protected static ?string $navigationGroup = 'Examinations & Certs';
     protected static ?int $navigationSort = 2;
 
+    public static function canViewAny(): bool
+    {
+        $user = auth()->user();
+        return $user && ($user->isSuperAdmin() || $user->can('evaluate_exams'));
+    }
+
+    public static function canCreate(): bool
+    {
+        $user = auth()->user();
+        return $user && ($user->isSuperAdmin() || $user->can('evaluate_exams'));
+    }
+
+    public static function canEdit(\Illuminate\Database\Eloquent\Model $record): bool
+    {
+        $user = auth()->user();
+        return $user && ($user->isSuperAdmin() || $user->can('evaluate_exams'));
+    }
+
+    public static function canDelete(\Illuminate\Database\Eloquent\Model $record): bool
+    {
+        $user = auth()->user();
+        return $user && ($user->isSuperAdmin() || $user->can('evaluate_exams'));
+    }
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return static::canViewAny();
+    }
+
     public static function form(Form $form): Form
     {
         return $form
@@ -127,7 +156,19 @@ class ExamResultResource extends Resource
                         'pass' => 'Passed',
                         'fail' => 'Failed',
                     ]),
+                Tables\Filters\SelectFilter::make('grade')
+                    ->options([
+                        'A+' => 'Grade A+',
+                        'A' => 'Grade A',
+                        'B+' => 'Grade B+',
+                        'B' => 'Grade B',
+                        'C' => 'Grade C',
+                        'D' => 'Grade D',
+                        'F' => 'Grade F',
+                    ]),
             ])
+            ->filtersLayout(Tables\Enums\FiltersLayout::AboveContentCollapsible)
+            ->filtersFormColumns(3)
             ->actions([
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),

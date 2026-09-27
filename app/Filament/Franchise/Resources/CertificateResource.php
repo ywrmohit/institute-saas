@@ -21,6 +21,35 @@ class CertificateResource extends Resource
     protected static ?string $navigationGroup = 'Examinations & Certs';
     protected static ?int $navigationSort = 3;
 
+    public static function canViewAny(): bool
+    {
+        $user = auth()->user();
+        return $user && ($user->isSuperAdmin() || $user->can('view_certificates'));
+    }
+
+    public static function canCreate(): bool
+    {
+        $user = auth()->user();
+        return $user && ($user->isSuperAdmin() || $user->can('issue_certificates'));
+    }
+
+    public static function canEdit(\Illuminate\Database\Eloquent\Model $record): bool
+    {
+        $user = auth()->user();
+        return $user && ($user->isSuperAdmin() || $user->can('issue_certificates'));
+    }
+
+    public static function canDelete(\Illuminate\Database\Eloquent\Model $record): bool
+    {
+        $user = auth()->user();
+        return $user && ($user->isSuperAdmin() || $user->can('issue_certificates'));
+    }
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return static::canViewAny();
+    }
+
     public static function form(Form $form): Form
     {
         return $form
@@ -138,7 +167,19 @@ class CertificateResource extends Resource
                         'issued' => 'Issued',
                         'revoked' => 'Revoked',
                     ]),
+                Tables\Filters\Filter::make('issue_date')
+                    ->form([
+                        Forms\Components\DatePicker::make('from')->label('Issued After'),
+                        Forms\Components\DatePicker::make('until')->label('Issued Before'),
+                    ])
+                    ->query(function ($query, array $data) {
+                        return $query
+                            ->when($data['from'], fn($q, $d) => $q->whereDate('issue_date', '>=', $d))
+                            ->when($data['until'], fn($q, $d) => $q->whereDate('issue_date', '<=', $d));
+                    }),
             ])
+            ->filtersLayout(Tables\Enums\FiltersLayout::AboveContentCollapsible)
+            ->filtersFormColumns(3)
             ->actions([
                 Tables\Actions\Action::make('print_certificate')
                     ->label('View / Print')

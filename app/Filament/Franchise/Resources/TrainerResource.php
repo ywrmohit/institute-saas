@@ -23,11 +23,46 @@ class TrainerResource extends Resource
     protected static ?string $navigationGroup = 'Branches & Staff';
     protected static ?int $navigationSort = 2;
 
+    public static function canViewAny(): bool
+    {
+        $user = auth()->user();
+        return $user && ($user->isSuperAdmin() || $user->can('view_trainers'));
+    }
+
+    public static function canCreate(): bool
+    {
+        $user = auth()->user();
+        return $user && ($user->isSuperAdmin() || $user->can('manage_trainers'));
+    }
+
+    public static function canEdit(\Illuminate\Database\Eloquent\Model $record): bool
+    {
+        $user = auth()->user();
+        return $user && ($user->isSuperAdmin() || $user->can('manage_trainers'));
+    }
+
+    public static function canDelete(\Illuminate\Database\Eloquent\Model $record): bool
+    {
+        $user = auth()->user();
+        return $user && ($user->isSuperAdmin() || $user->can('manage_trainers'));
+    }
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return static::canViewAny();
+    }
+
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()
-            ->whereIn('role', ['trainer', 'branch_admin', 'accountant'])
+        $query = parent::getEloquentQuery()
+            ->whereNotIn('role', ['super_admin', 'franchise_owner', 'student'])
             ->where('franchise_id', Filament::getTenant()?->id);
+
+        if (auth()->user()?->isBranchAdmin() && auth()->user()->branch_id) {
+            $query->where('branch_id', auth()->user()->branch_id);
+        }
+
+        return $query;
     }
 
     public static function form(Form $form): Form
@@ -56,12 +91,21 @@ class TrainerResource extends Resource
                             ->maxLength(255),
                         Forms\Components\Select::make('role')
                             ->label('Assigned Role')
-                            ->options([
-                                'trainer' => 'Trainer / Faculty',
-                                'branch_admin' => 'Branch Center Admin',
-                                'accountant' => 'Accountant / Cashier',
-                            ])
+                            ->options(function () {
+                                $roles = \Spatie\Permission\Models\Role::whereNotIn('name', ['super_admin', 'franchise_owner', 'student'])->get();
+                                if ($roles->isEmpty()) {
+                                    return [
+                                        'trainer' => 'Trainer / Faculty',
+                                        'branch_admin' => 'Branch Center Admin',
+                                        'accountant' => 'Accountant / Cashier',
+                                    ];
+                                }
+                                return $roles->pluck('name', 'name')
+                                    ->mapWithKeys(fn($r) => [$r => ucwords(str_replace('_', ' ', $r))])
+                                    ->toArray();
+                            })
                             ->default('trainer')
+                            ->searchable()
                             ->required(),
                         Forms\Components\Select::make('branch_id')
                             ->relationship('branch', 'name')
@@ -103,7 +147,7 @@ class TrainerResource extends Resource
                         'branch_admin' => 'primary',
                         'trainer' => 'info',
                         'accountant' => 'success',
-                        default => 'gray',
+                        default => 'warning',
                     })
                     ->formatStateUsing(fn(string $state): string => ucwords(str_replace('_', ' ', $state))),
                 Tables\Columns\TextColumn::make('branch.name')
@@ -117,11 +161,12 @@ class TrainerResource extends Resource
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('role')
-                    ->options([
-                        'trainer' => 'Trainer',
-                        'branch_admin' => 'Branch Admin',
-                        'accountant' => 'Accountant',
-                    ]),
+                    ->options(function () {
+                        return \Spatie\Permission\Models\Role::whereNotIn('name', ['super_admin', 'franchise_owner', 'student'])
+                            ->pluck('name', 'name')
+                            ->mapWithKeys(fn($r) => [$r => ucwords(str_replace('_', ' ', $r))])
+                            ->toArray();
+                    }),
                 Tables\Filters\SelectFilter::make('branch_id')
                     ->relationship('branch', 'name')
                     ->label('Branch'),

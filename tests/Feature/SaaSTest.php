@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Attendance;
+use App\Models\Batch;
 use App\Models\Certificate;
 use App\Models\Course;
 use App\Models\Exam;
@@ -322,5 +323,218 @@ class SaaSTest extends TestCase
             ->assertRedirect();
 
         $this->assertAuthenticated();
+    }
+
+    /** Test 22: Printable CR80 PVC Student ID Card renders with student data & QR code */
+    public function test_student_id_card_renders_successfully(): void
+    {
+        $student = Student::first();
+        $this->assertNotNull($student);
+
+        $response = $this->get("/student/{$student->id}/id-card");
+        $response->assertStatus(200);
+        $response->assertSee($student->full_name);
+        $response->assertSee($student->student_id_code);
+        $response->assertSee('Official Student Identity Card');
+        $response->assertSee('Print ID Card');
+    }
+
+    /** Test 23: Strict RBAC Navigation Scoping across Trainer and Accountant */
+    public function test_strict_rbac_navigation_scoping_for_different_roles(): void
+    {
+        // 1. Trainer Role Isolation
+        $trainer = User::where('email', 'trainer@apextech.com')->first();
+        $this->actingAs($trainer);
+
+        $this->assertFalse(\App\Filament\Franchise\Resources\FeeInvoiceResource::shouldRegisterNavigation());
+        $this->assertFalse(\App\Filament\Franchise\Resources\PaymentResource::shouldRegisterNavigation());
+        $this->assertFalse(\App\Filament\Franchise\Resources\BranchResource::shouldRegisterNavigation());
+        $this->assertTrue(\App\Filament\Franchise\Resources\BatchResource::shouldRegisterNavigation());
+        $this->assertTrue(\App\Filament\Franchise\Resources\CourseResource::shouldRegisterNavigation());
+        $this->assertTrue(\App\Filament\Franchise\Resources\AttendanceResource::shouldRegisterNavigation());
+
+        // 2. Accountant Role Isolation
+        $accountant = User::where('email', 'accountant@apextech.com')->first();
+        $this->actingAs($accountant);
+
+        $this->assertTrue(\App\Filament\Franchise\Resources\FeeInvoiceResource::shouldRegisterNavigation());
+        $this->assertTrue(\App\Filament\Franchise\Resources\PaymentResource::shouldRegisterNavigation());
+        $this->assertFalse(\App\Filament\Franchise\Resources\CourseResource::shouldRegisterNavigation());
+        $this->assertFalse(\App\Filament\Franchise\Resources\BatchResource::shouldRegisterNavigation());
+        $this->assertFalse(\App\Filament\Franchise\Resources\ExamResource::shouldRegisterNavigation());
+        $this->assertFalse(\App\Filament\Franchise\Resources\CertificateResource::shouldRegisterNavigation());
+    }
+
+    /** Test 24: Role Switcher Quick Fill sets credentials and authenticates role */
+    public function test_franchise_login_role_switcher_and_quick_fill(): void
+    {
+        \Filament\Facades\Filament::setCurrentPanel(\Filament\Facades\Filament::getPanel('franchise'));
+
+        // Test Trainer role switch & form fill
+        $component = \Livewire\Livewire::test(\App\Filament\Pages\Auth\FranchiseLogin::class)
+            ->call('selectRole', 'trainer')
+            ->assertSet('selectedRole', 'trainer');
+
+        $this->assertEquals('trainer@apextech.com', $component->get('data.email'));
+
+        // Test Accountant role switch & form fill
+        $component->call('selectRole', 'accountant')
+            ->assertSet('selectedRole', 'accountant');
+
+        $this->assertEquals('accountant@apextech.com', $component->get('data.email'));
+    }
+
+    /** Test 25: 1-Step Admission Flow creates student, enrollment, invoice, installments & portal user */
+    public function test_one_step_admission_flow_automates_enrollment_and_billing(): void
+    {
+        $franchise = Franchise::first();
+        $branch = $franchise->branches()->first();
+        $course = Course::where('franchise_id', $franchise->id)->first();
+        $batch = Batch::where('course_id', $course->id)->first();
+        $owner = User::where('email', 'owner@apextech.com')->first();
+
+        $this->actingAs($owner);
+        \Filament\Facades\Filament::setCurrentPanel(\Filament\Facades\Filament::getPanel('franchise'));
+        \Filament\Facades\Filament::setTenant($franchise);
+
+        Student::where('email', 'kavita.patel@testmail.com')->delete();
+        User::where('email', 'kavita.patel@testmail.com')->delete();
+
+        \Livewire\Livewire::test(\App\Filament\Franchise\Resources\StudentResource\Pages\CreateStudent::class)
+            ->fillForm([
+                'first_name' => 'Kavita',
+                'last_name' => 'Patel',
+                'branch_id' => $branch->id,
+                'phone' => '+91 98980 11223',
+                'email' => 'kavita.patel@testmail.com',
+                'gender' => 'female',
+                'date_of_birth' => '2004-05-15',
+                'enrolled_course_id' => $course->id,
+                'enrolled_batch_id' => $batch?->id,
+                'course_fee' => 12000,
+                'discount_amount' => 2000,
+                'net_fee' => 10000,
+                'installments_count' => 2,
+                'auto_create_portal_user' => true,
+            ])
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        // 1. Verify Student was created
+        $student = Student::where('email', 'kavita.patel@testmail.com')->latest('id')->first();
+        $this->assertNotNull($student);
+        $this->assertEquals('Kavita Patel', $student->full_name);
+
+        // 2. Verify Enrollment was auto-created
+        $enrollment = \App\Models\Enrollment::where('student_id', $student->id)->latest('id')->first();
+        $this->assertNotNull($enrollment);
+        $this->assertEquals($course->id, $enrollment->course_id);
+
+        // 3. Verify Fee Invoice was auto-created with 2 installments
+        $invoice = FeeInvoice::where('student_id', $student->id)->first();
+        $this->assertNotNull($invoice);
+        $this->assertEquals(10000.00, (float)$invoice->total_amount);
+        $this->assertCount(2, $invoice->installments);
+
+        // 4. Verify Student User Login Account was created
+        $user = User::where('email', 'kavita.patel@testmail.com')->first();
+        $this->assertNotNull($user);
+        $this->assertEquals('student', $user->role);
+        $this->assertEquals($user->id, $student->user_id);
+    }
+
+    /** Test 26: Spatie Role and Permission Matrix Verification */
+    public function test_spatie_role_and_permission_assignment(): void
+    {
+        // 1. Trainer Role and Permissions
+        $trainer = User::where('email', 'trainer@apextech.com')->first();
+        $this->assertNotNull($trainer);
+        $this->assertTrue($trainer->hasRole('trainer'));
+        $this->assertTrue($trainer->can('mark_attendance'));
+        $this->assertTrue($trainer->can('view_attendance'));
+        $this->assertTrue($trainer->can('view_courses'));
+        $this->assertTrue($trainer->can('view_batches'));
+        $this->assertFalse($trainer->can('view_fee_invoices'));
+        $this->assertFalse($trainer->can('record_payments'));
+        $this->assertFalse($trainer->can('manage_branches'));
+        $this->assertFalse($trainer->can('manage_roles_permissions'));
+
+        // 2. Accountant Role and Permissions
+        $accountant = User::where('email', 'accountant@apextech.com')->first();
+        $this->assertNotNull($accountant);
+        $this->assertTrue($accountant->hasRole('accountant'));
+        $this->assertTrue($accountant->can('view_fee_invoices'));
+        $this->assertTrue($accountant->can('manage_fee_invoices'));
+        $this->assertTrue($accountant->can('record_payments'));
+        $this->assertFalse($accountant->can('manage_courses'));
+        $this->assertFalse($accountant->can('manage_batches'));
+        $this->assertFalse($accountant->can('issue_certificates'));
+        $this->assertFalse($accountant->can('manage_roles_permissions'));
+
+        // 3. Franchise Owner Role and Permissions
+        $owner = User::where('email', 'owner@apextech.com')->first();
+        $this->assertNotNull($owner);
+        $this->assertTrue($owner->hasRole('franchise_owner'));
+        $this->assertTrue($owner->can('manage_roles_permissions'));
+        $this->assertTrue($owner->can('create_students'));
+        $this->assertTrue($owner->can('manage_fee_invoices'));
+        $this->assertTrue($owner->can('manage_courses'));
+    }
+
+    /** Test 27: Custom Role Creation and Granular Resource Gates */
+    public function test_custom_role_creation_and_permission_gate(): void
+    {
+        $franchise = Franchise::first();
+
+        // 1. Create a custom role with isolated permissions
+        $customRole = \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'front_desk_counselor', 'guard_name' => 'web']);
+        $customRole->syncPermissions(['view_students', 'create_students']);
+
+        // 2. Create a staff user assigned to this custom role
+        $counselor = User::updateOrCreate(
+            ['email' => 'counselor@apextech.com'],
+            [
+                'name' => 'Counselor Priya',
+                'franchise_id' => $franchise->id,
+                'role' => 'front_desk_counselor',
+                'status' => 'active',
+                'password' => bcrypt('password'),
+            ]
+        );
+        $counselor->syncRoles(['front_desk_counselor']);
+
+        $this->actingAs($counselor);
+
+        // 3. Assert permission gates
+        $this->assertTrue($counselor->can('view_students'));
+        $this->assertTrue($counselor->can('create_students'));
+        $this->assertFalse($counselor->can('manage_fee_invoices'));
+        $this->assertFalse($counselor->can('manage_courses'));
+        $this->assertFalse($counselor->can('manage_roles_permissions'));
+
+        // 4. Assert Resource Authorizations
+        $this->assertTrue(\App\Filament\Franchise\Resources\StudentResource::canCreate());
+        $this->assertFalse(\App\Filament\Franchise\Resources\FeeInvoiceResource::canCreate());
+        $this->assertFalse(\App\Filament\Franchise\Resources\CourseResource::canCreate());
+        $this->assertFalse(\App\Filament\Franchise\Resources\RoleResource::canViewAny());
+    }
+
+    /** Test 28: RoleResource Access Restricted to Authorized Staff */
+    public function test_role_resource_access_restricted(): void
+    {
+        $owner = User::where('email', 'owner@apextech.com')->first();
+        $this->actingAs($owner);
+        $this->assertTrue(\App\Filament\Franchise\Resources\RoleResource::canViewAny());
+        $this->assertTrue(\App\Filament\Franchise\Resources\RoleResource::canCreate());
+
+        $trainer = User::where('email', 'trainer@apextech.com')->first();
+        $this->actingAs($trainer);
+        $this->assertFalse(\App\Filament\Franchise\Resources\RoleResource::canViewAny());
+        $this->assertFalse(\App\Filament\Franchise\Resources\RoleResource::canCreate());
+
+        $accountant = User::where('email', 'accountant@apextech.com')->first();
+        $this->actingAs($accountant);
+        $this->assertFalse(\App\Filament\Franchise\Resources\RoleResource::canViewAny());
+        $this->assertFalse(\App\Filament\Franchise\Resources\RoleResource::canCreate());
     }
 }

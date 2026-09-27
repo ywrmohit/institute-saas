@@ -74,4 +74,7 @@ Route::prefix('student')->group(function () {
         Route::get('/exams/{id}', [StudentPortalController::class, 'takeExam'])->name('student.exam.take');
         Route::post('/exams/{id}/submit', [StudentPortalController::class, 'submitExam'])->name('student.exam.submit');
     });
+
+    // Student ID Card Print (accessible with auth or franchise token)
+    Route::get('/{id}/id-card', [StudentPortalController::class, 'printIdCard'])->name('student.id-card.print');
 });

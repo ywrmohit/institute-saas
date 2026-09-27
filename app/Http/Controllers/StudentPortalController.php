@@ -198,6 +198,20 @@ class StudentPortalController extends Controller
     }
 
     /**
+     * Print official high-resolution Student ID Card.
+     */
+    public function printIdCard($id)
+    {
+        $student = Student::with(['branch', 'enrollments.course', 'enrollments.batch.trainer'])->findOrFail($id);
+
+        if (Auth::check() && Auth::user()->isStudent() && Auth::user()->student?->id !== $student->id) {
+            abort(403, 'Unauthorized access to ID card.');
+        }
+
+        return view('student.id-card', compact('student'));
+    }
+
+    /**
      * Logout from student portal.
      */
     public function logout(Request $request)

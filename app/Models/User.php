@@ -13,10 +13,11 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Collection;
+use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable implements FilamentUser, HasTenants
 {
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, HasRoles;
 
     protected $fillable = [
         'franchise_id',
@@ -42,6 +43,15 @@ class User extends Authenticatable implements FilamentUser, HasTenants
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::saved(function (User $user) {
+            if ($user->role && ! $user->hasRole($user->role)) {
+                $user->syncRoles([$user->role]);
+            }
+        });
     }
 
     public function isSuperAdmin(): bool
@@ -117,14 +127,10 @@ class User extends Authenticatable implements FilamentUser, HasTenants
         }
 
         if ($panel->getId() === 'franchise') {
-            // Franchise Panel is for Franchise Staff and Super Admin
-            return in_array($this->role, [
-                'super_admin',
-                'franchise_owner',
-                'branch_admin',
-                'trainer',
-                'accountant',
-            ]);
+            if ($this->isStudent()) {
+                return false;
+            }
+            return !empty($this->franchise_id) || $this->isSuperAdmin();
         }
 
         return false;
