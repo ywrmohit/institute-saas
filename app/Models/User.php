@@ -48,8 +48,12 @@ class User extends Authenticatable implements FilamentUser, HasTenants
     protected static function booted(): void
     {
         static::saved(function (User $user) {
-            if ($user->role && ! $user->hasRole($user->role)) {
-                $user->syncRoles([$user->role]);
+            try {
+                if ($user->role && ! $user->hasRole($user->role)) {
+                    $user->syncRoles([$user->role]);
+                }
+            } catch (\Throwable $e) {
+                // If roles are not yet seeded or exist in DB, gracefully ignore
             }
         });
     }

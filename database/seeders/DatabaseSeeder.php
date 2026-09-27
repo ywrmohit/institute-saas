@@ -31,6 +31,8 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
+        $this->call(RoleAndPermissionSeeder::class);
+
         // 1. Subscription Plans
         $planStarter = SubscriptionPlan::create([
             'name' => 'Starter Academy',
