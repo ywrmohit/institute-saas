@@ -28,8 +28,8 @@
         </a>
     </div>
 
-    <!-- Developer Quick Fill (Only visible in local development environment) -->
     @if (app()->environment('local'))
+        <!-- Developer Quick Fill (Only visible in local development environment) -->
         <details class="mt-4 pt-3 border-t border-dashed border-gray-200 dark:border-gray-800 text-[11px] text-gray-400">
             <summary class="cursor-pointer hover:text-gray-600 dark:hover:text-gray-300 font-medium text-center select-none">
                 🛠️ Quick Fill Test Accounts (Local Dev Only)
