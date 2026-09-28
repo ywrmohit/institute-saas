@@ -82,6 +82,52 @@ Route::post('/app/login', function (\Illuminate\Http\Request $request) {
     ]);
 })->middleware('web');
 
+// Smart root /app routing for authenticated franchise users
+Route::get('/app', function () {
+    if (! auth()->check()) {
+        return redirect('/app/login');
+    }
+    $user = auth()->user();
+    if ($user->isSuperAdmin()) {
+        return redirect('/admin');
+    }
+    if ($user->isStudent()) {
+        return redirect()->route('student.dashboard');
+    }
+    if ($user->franchise) {
+        return redirect('/app/' . $user->franchise->slug);
+    }
+    return redirect('/app/login');
+});
+
+// Universal Logout Handlers (handles both GET and POST gracefully, preventing 405 Method Not Allowed)
+Route::match(['get', 'post'], '/logout', function (\Illuminate\Http\Request $request) {
+    \Illuminate\Support\Facades\Auth::logout();
+    \Filament\Facades\Filament::auth()->logout();
+    $request->session()->invalidate();
+    $request->session()->regenerateToken();
+
+    return redirect('/')->with('status', 'You have been signed out successfully.');
+})->name('logout');
+
+Route::get('/admin/logout', function (\Illuminate\Http\Request $request) {
+    \Illuminate\Support\Facades\Auth::logout();
+    \Filament\Facades\Filament::auth()->logout();
+    $request->session()->invalidate();
+    $request->session()->regenerateToken();
+
+    return redirect('/admin/login')->with('status', 'You have been signed out successfully.');
+});
+
+Route::get('/app/logout', function (\Illuminate\Http\Request $request) {
+    \Illuminate\Support\Facades\Auth::logout();
+    \Filament\Facades\Filament::auth()->logout();
+    $request->session()->invalidate();
+    $request->session()->regenerateToken();
+
+    return redirect('/app/login')->with('status', 'You have been signed out successfully.');
+});
+
 // Public Landing Page
 Route::get('/', function () {
     return view('welcome');

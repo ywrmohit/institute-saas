@@ -610,4 +610,42 @@ class SaaSTest extends TestCase
             ->call('authenticate')
             ->assertRedirect(route('student.dashboard'));
     }
+
+    /** Test 32: Unauthorized panel navigation prevents raw 403 and redirects gracefully */
+    public function test_unauthorized_panel_access_prevents_raw_403_and_redirects_gracefully(): void
+    {
+        $owner = User::where('email', 'owner@apextech.com')->first();
+        $this->actingAs($owner);
+
+        // When franchise staff navigates to /admin, it must redirect smoothly, NEVER return a raw 403
+        $response = $this->get('/admin');
+        $response->assertStatus(302);
+        $this->assertNotEquals(403, $response->getStatusCode());
+        $response->assertRedirect('/app/apex-institute');
+
+        // When visiting root /app, it must smoothly resolve to their tenant slug
+        $responseApp = $this->get('/app');
+        $responseApp->assertStatus(302);
+        $responseApp->assertRedirect('/app/apex-institute');
+    }
+
+    /** Test 33: Universal GET and POST logout clears session and redirects cleanly */
+    public function test_universal_logout_clears_session_and_redirects(): void
+    {
+        $owner = User::where('email', 'owner@apextech.com')->first();
+        $this->actingAs($owner);
+        $this->assertAuthenticated();
+
+        // 1. Test GET /logout
+        $response = $this->get('/logout');
+        $response->assertRedirect('/');
+        $this->assertGuest();
+
+        // 2. Test GET /admin/logout
+        $this->actingAs($owner);
+        $this->assertAuthenticated();
+        $responseAdmin = $this->get('/admin/logout');
+        $responseAdmin->assertRedirect('/admin/login');
+        $this->assertGuest();
+    }
 }
