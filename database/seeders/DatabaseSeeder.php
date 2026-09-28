@@ -138,7 +138,7 @@ class DatabaseSeeder extends Seeder
         // 4. Users (RBAC)
         $superAdmin = User::create([
             'name' => 'Super Administrator',
-            'email' => 'admin@edupulse.io',
+            'email' => 'admin@remax.io',
             'phone' => '9876543200',
             'password' => Hash::make('password'),
             'role' => 'super_admin',
@@ -654,5 +654,13 @@ class DatabaseSeeder extends Seeder
             'user_agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
             'new_values' => ['certificate_number' => 'CERT-2024-APX1001', 'student' => 'Aarav Sharma'],
         ]);
+
+        // 16. Default Platform System Settings
+        \App\Models\SystemSetting::set('app_name', 'Remax');
+        \App\Models\SystemSetting::set('app_tagline', 'Multi-Tenant Institute & Franchise Management SaaS');
+        \App\Models\SystemSetting::set('support_email', 'admin@remax.io');
+        \App\Models\SystemSetting::set('support_phone', '+91 98765 43200');
+        \App\Models\SystemSetting::set('footer_text', 'Remax SaaS Platform. All rights reserved.');
+        \App\Models\SystemSetting::set('hero_badge', 'Complete Multi-Tenant Architecture & Franchise Management');
     }
 }

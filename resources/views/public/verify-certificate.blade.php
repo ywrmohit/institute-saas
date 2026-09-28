@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Official Certificate Verification | EduPulse Registry</title>
+    <title>Official Certificate Verification | {{ setting('app_name', 'Remax') }} Registry</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>body { font-family: 'Plus Jakarta Sans', sans-serif; }</style>
@@ -15,9 +15,9 @@
         <div class="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
             <a href="{{ route('home') }}" class="flex items-center space-x-2.5">
                 <div class="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-sm">
-                    E
+                    {{ strtoupper(substr(setting('app_name', 'Remax'), 0, 1)) }}
                 </div>
-                <span class="font-extrabold text-base tracking-tight text-slate-900 dark:text-white">EduPulse <span class="text-xs text-blue-600 font-semibold uppercase tracking-wider">Verification</span></span>
+                <span class="font-extrabold text-base tracking-tight text-slate-900 dark:text-white">{{ setting('app_name', 'Remax') }} <span class="text-xs text-blue-600 font-semibold uppercase tracking-wider">Verification</span></span>
             </a>
             <div class="flex items-center space-x-3 text-xs font-semibold">
                 <a href="{{ route('home') }}" class="text-slate-600 dark:text-slate-400 hover:text-blue-600">Home</a>
@@ -146,7 +146,7 @@
 
     <!-- Footer -->
     <footer class="border-t border-slate-200 dark:border-slate-800 py-6 text-center text-xs text-slate-400">
-        &copy; {{ date('Y') }} EduPulse Certified Registry. Official Public Verification.
+        &copy; {{ date('Y') }} {{ setting('app_name', 'Remax') }} Certified Registry. Official Public Verification.
     </footer>
 
 </body>

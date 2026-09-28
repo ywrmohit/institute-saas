@@ -34,7 +34,7 @@ class AdminLogin extends BaseLogin
     {
         return TextInput::make('email')
             ->label('Email or Phone Number')
-            ->placeholder('admin@edupulse.io')
+            ->placeholder('admin@remax.io')
             ->email(false)
             ->required()
             ->autocomplete()

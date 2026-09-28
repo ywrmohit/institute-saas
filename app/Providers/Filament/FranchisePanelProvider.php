@@ -28,7 +28,7 @@ class FranchisePanelProvider extends PanelProvider
             ->path('app')
             ->login(\App\Filament\Pages\Auth\FranchiseLogin::class)
             ->tenant(Franchise::class, slugAttribute: 'slug')
-            ->brandName('EduPulse Institute Hub')
+            ->brandName(fn () => (string) \App\Models\SystemSetting::get('app_name', null, 'Remax') . ' Institute Hub')
             ->colors([
                 'primary' => Color::Blue,
                 'gray' => Color::Slate,

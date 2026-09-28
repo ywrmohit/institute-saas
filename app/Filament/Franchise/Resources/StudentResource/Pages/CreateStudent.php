@@ -82,7 +82,7 @@ class CreateStudent extends CreateRecord
 
         // 3. Automated Student Portal Account
         if (!empty($formData['auto_create_portal_user'])) {
-            $email = $student->email ?: strtolower($student->student_id_code) . '@student.edupulse.io';
+            $email = $student->email ?: strtolower($student->student_id_code) . '@student.remax.io';
             $user = User::firstOrCreate(
                 ['email' => $email],
                 [

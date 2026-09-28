@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\Cache;
 
 class SystemSetting extends Model
 {
@@ -23,11 +24,15 @@ class SystemSetting extends Model
 
     public static function get(string $key, ?int $franchiseId = null, $default = null)
     {
-        $setting = self::where('key', $key)
-            ->where('franchise_id', $franchiseId)
-            ->first();
+        $cacheKey = "sys_setting_{$franchiseId}_{$key}";
 
-        return $setting ? $setting->value : $default;
+        return Cache::remember($cacheKey, 86400, function () use ($key, $franchiseId, $default) {
+            $setting = self::where('key', $key)
+                ->where('franchise_id', $franchiseId)
+                ->first();
+
+            return ($setting && $setting->value !== null && $setting->value !== '') ? $setting->value : $default;
+        });
     }
 
     public static function set(string $key, $value, ?int $franchiseId = null): void
@@ -36,5 +41,18 @@ class SystemSetting extends Model
             ['franchise_id' => $franchiseId, 'key' => $key],
             ['value' => $value]
         );
+
+        Cache::forget("sys_setting_{$franchiseId}_{$key}");
+    }
+
+    protected static function booted(): void
+    {
+        static::saved(function ($model) {
+            Cache::forget("sys_setting_{$model->franchise_id}_{$model->key}");
+        });
+
+        static::deleted(function ($model) {
+            Cache::forget("sys_setting_{$model->franchise_id}_{$model->key}");
+        });
     }
 }

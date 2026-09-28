@@ -65,10 +65,10 @@
             <div class="bg-gradient-to-r from-blue-700 via-blue-800 to-indigo-900 px-3 py-1.5 flex items-center justify-between text-white">
                 <div class="flex items-center space-x-2">
                     <div class="w-6 h-6 rounded-full bg-white text-blue-700 font-extrabold flex items-center justify-center text-xs shadow-inner">
-                        EP
+                        {{ strtoupper(substr(setting('app_name', 'Remax'), 0, 2)) }}
                     </div>
                     <div>
-                        <div class="text-[9px] font-black uppercase tracking-wider leading-none">EduPulse Institute SaaS</div>
+                        <div class="text-[9px] font-black uppercase tracking-wider leading-none">{{ setting('app_name', 'Remax') }} Institute SaaS</div>
                         <div class="text-[7.5px] text-blue-200 font-medium leading-tight">{{ $student->franchise?->name ?? 'Apex Tech Institute' }}</div>
                     </div>
                 </div>

@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>500 - Server Error | EduPulse Institute SaaS</title>
+    <title>500 - Server Error | {{ setting('app_name', 'Remax') }} Institute SaaS</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="h-full flex items-center justify-center p-4 antialiased">

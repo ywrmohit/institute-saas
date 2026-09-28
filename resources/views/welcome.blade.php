@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EduPulse | Multi-Tenant Institute & Franchise Management SaaS</title>
+    <title>{{ setting('app_name', 'Remax') }} | {{ setting('app_tagline', 'Multi-Tenant Institute & Franchise Management SaaS') }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -24,7 +24,7 @@
                     </svg>
                 </div>
                 <div>
-                    <span class="text-xl font-extrabold tracking-tight bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">EduPulse</span>
+                    <span class="text-xl font-extrabold tracking-tight bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">{{ setting('app_name', 'Remax') }}</span>
                     <span class="text-xs uppercase tracking-widest font-semibold text-slate-400 block -mt-1">SaaS & Franchise</span>
                 </div>
             </div>
@@ -50,7 +50,7 @@
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
                 <div class="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-blue-100 dark:bg-blue-950/70 border border-blue-300 dark:border-blue-800 text-blue-700 dark:text-blue-300 text-xs font-semibold mb-6">
                     <span class="w-2 h-2 rounded-full bg-blue-600 animate-ping"></span>
-                    <span>Complete Multi-Tenant Architecture & Franchise Management</span>
+                    <span>{{ setting('hero_badge', 'Complete Multi-Tenant Architecture & Franchise Management') }}</span>
                 </div>
 
                 <h1 class="text-4xl sm:text-6xl font-black tracking-tight text-slate-900 dark:text-white max-w-4xl mx-auto leading-tight sm:leading-none">
@@ -102,7 +102,7 @@
                         <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700">
                             <span class="px-2 py-0.5 text-xs font-bold rounded bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300 uppercase">Super Admin</span>
                             <h4 class="font-bold text-sm text-slate-800 dark:text-slate-200 mt-2">Platform Central</h4>
-                            <p class="text-xs font-mono text-slate-500 mt-1 select-all">admin@edupulse.io</p>
+                            <p class="text-xs font-mono text-slate-500 mt-1 select-all">admin@remax.io</p>
                             <a href="{{ url('/admin') }}" class="mt-3 block text-xs font-bold text-blue-600 hover:underline">Launch /admin &rarr;</a>
                         </div>
 
@@ -232,7 +232,7 @@
     <!-- Footer -->
     <footer class="bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 py-8">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500">
-            <p>&copy; {{ date('Y') }} EduPulse SaaS Platform. All rights reserved.</p>
+            <p>&copy; {{ date('Y') }} {{ setting('footer_text', setting('app_name', 'Remax') . ' SaaS Platform. All rights reserved.') }}</p>
             <div class="flex items-center space-x-6 mt-4 sm:mt-0 font-medium">
                 <a href="{{ route('certificate.verify') }}" class="hover:text-blue-600">Public Verification</a>
                 <a href="{{ route('student.login') }}" class="hover:text-blue-600">Student Portal</a>

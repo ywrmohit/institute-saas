@@ -491,7 +491,7 @@
 
     <!-- Footer -->
     <footer class="border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 py-6 text-center text-xs text-slate-400">
-        &copy; {{ date('Y') }} {{ $student->franchise->name }}. Powered by EduPulse Institute SaaS.
+        &copy; {{ date('Y') }} {{ $student->franchise->name }}. Powered by {{ setting('app_name', 'Remax') }} Institute SaaS.
     </footer>
 
 </body>

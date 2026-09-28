@@ -25,7 +25,7 @@ class SaaSTest extends TestCase
     {
         $response = $this->get('/');
         $response->assertStatus(200);
-        $response->assertSee('EduPulse');
+        $response->assertSee('Remax');
         $response->assertSee('Super Admin Panel');
         $response->assertSee('Student Portal');
     }
@@ -262,8 +262,10 @@ class SaaSTest extends TestCase
     /** Test 17: Admin Login Native POST Fallback */
     public function test_admin_login_post_redirects_super_admin(): void
     {
+        $admin = User::where('role', 'super_admin')->first();
+
         $response = $this->post('/admin/login', [
-            'email' => 'admin@edupulse.io',
+            'email' => $admin?->email ?? 'admin@remax.io',
             'password' => 'password',
         ]);
 
@@ -289,8 +291,10 @@ class SaaSTest extends TestCase
     /** Test 19: Admin Login Invalid Credentials Fails Gracefully */
     public function test_admin_login_post_with_invalid_credentials_fails(): void
     {
+        $admin = User::where('role', 'super_admin')->first();
+
         $response = $this->post('/admin/login', [
-            'email' => 'admin@edupulse.io',
+            'email' => $admin?->email ?? 'admin@remax.io',
             'password' => 'wrongpassword',
         ]);
 
@@ -647,5 +651,28 @@ class SaaSTest extends TestCase
         $responseAdmin = $this->get('/admin/logout');
         $responseAdmin->assertRedirect('/admin/login');
         $this->assertGuest();
+    }
+
+    /** Test 34: Customization settings update platform branding dynamically */
+    public function test_customization_setting_updates_brand_dynamically(): void
+    {
+        // 1. Update brand name dynamically
+        \App\Models\SystemSetting::set('app_name', 'DynamicPortalX');
+
+        $response = $this->get('/');
+        $response->assertStatus(200);
+        $response->assertSee('DynamicPortalX');
+
+        // 2. Student login reflects dynamic name
+        $responseLogin = $this->get('/student/login');
+        $responseLogin->assertStatus(200);
+        $responseLogin->assertSee('DynamicPortalX');
+
+        // 3. Reset back to Remax
+        \App\Models\SystemSetting::set('app_name', 'Remax');
+
+        $responseReset = $this->get('/');
+        $responseReset->assertStatus(200);
+        $responseReset->assertSee('Remax');
     }
 }
