@@ -31,7 +31,7 @@ class StudentPortalController extends Controller
     }
 
     /**
-     * Authenticate student using email or student ID code.
+     * Authenticate student using email, student ID code, admission number, or mobile phone.
      */
     public function login(Request $request)
     {
@@ -40,24 +40,61 @@ class StudentPortalController extends Controller
             'password' => 'required|string',
         ]);
 
-        // Attempt login via email or student ID code
-        $user = User::where('role', 'student')
-            ->where(function ($query) use ($credentials) {
-                $query->where('email', $credentials['login'])
-                    ->orWhereHas('student', function ($q) use ($credentials) {
-                        $q->where('student_id_code', $credentials['login'])
-                          ->orWhere('admission_number', $credentials['login']);
-                    });
+        $login = trim($credentials['login']);
+        $cleanedPhone = preg_replace('/[^0-9]/', '', $login);
+
+        // First attempt finding a student user
+        $user = User::where(function ($query) use ($login, $cleanedPhone) {
+                $query->where('email', $login)
+                    ->orWhere('phone', $login);
+
+                if (!empty($cleanedPhone) && strlen($cleanedPhone) >= 7) {
+                    $query->orWhere('phone', 'like', '%' . substr($cleanedPhone, -10));
+                }
+
+                $query->orWhereHas('student', function ($q) use ($login, $cleanedPhone) {
+                    $q->where('student_id_code', $login)
+                      ->orWhere('admission_number', $login)
+                      ->orWhere('phone', $login);
+
+                    if (!empty($cleanedPhone) && strlen($cleanedPhone) >= 7) {
+                        $q->orWhere('phone', 'like', '%' . substr($cleanedPhone, -10));
+                    }
+                });
             })
             ->first();
 
+        // If not found as student, check any registered staff user attempting login
+        if (! $user) {
+            $user = User::where('email', $login)->orWhere('phone', $login)->first();
+        }
+
+        if ($user && $user->status !== 'active') {
+            return back()->withErrors([
+                'login' => 'Your account has been deactivated. Please contact your center administrator.',
+            ])->withInput($request->only('login'));
+        }
+
         if ($user && Auth::attempt(['email' => $user->email, 'password' => $credentials['password']], $request->boolean('remember'))) {
             $request->session()->regenerate();
+
+            // Smooth cross-role redirection if staff logged in here
+            if ($user->isSuperAdmin()) {
+                return redirect()->intended('/admin');
+            }
+
+            if (! $user->isStudent()) {
+                if ($user->franchise) {
+                    return redirect()->intended('/app/' . $user->franchise->slug);
+                }
+                return redirect()->intended('/app');
+            }
+
             return redirect()->intended(route('student.dashboard'));
         }
 
         return back()->withErrors([
-            'login' => 'Invalid credentials. Please verify your Student ID/Email and password.',
+            'login' => 'Invalid credentials. Please verify your Student ID, Email or Phone, and password.',
         ])->withInput($request->only('login'));
     }
 

@@ -537,4 +537,77 @@ class SaaSTest extends TestCase
         $this->assertFalse(\App\Filament\Franchise\Resources\RoleResource::canViewAny());
         $this->assertFalse(\App\Filament\Franchise\Resources\RoleResource::canCreate());
     }
+
+    /** Test 29: Mobile Phone Number Authentication across Franchise and Student Portals */
+    public function test_phone_number_login_for_franchise_and_student(): void
+    {
+        // 1. Franchise Staff Login via Mobile Phone Number
+        \Filament\Facades\Filament::setCurrentPanel(\Filament\Facades\Filament::getPanel('franchise'));
+
+        \Livewire\Livewire::test(\App\Filament\Pages\Auth\FranchiseLogin::class)
+            ->set('data.email', '9876543210')
+            ->set('data.password', 'password')
+            ->call('authenticate')
+            ->assertHasNoErrors()
+            ->assertRedirect();
+
+        $this->assertAuthenticated();
+        $this->assertEquals('owner@apextech.com', auth()->user()->email);
+
+        auth()->logout();
+
+        // 2. Student Portal Login via Mobile Phone Number
+        $response = $this->post('/student/login', [
+            'login' => '9876543214',
+            'password' => 'password',
+        ]);
+
+        $response->assertRedirect(route('student.dashboard'));
+        $this->assertAuthenticated();
+        $this->assertEquals('student@apextech.com', auth()->user()->email);
+    }
+
+    /** Test 30: Deactivated User Login is Strictly Blocked with Clear Feedback */
+    public function test_deactivated_user_login_blocked(): void
+    {
+        $trainer = User::where('email', 'trainer@apextech.com')->first();
+        $trainer->update(['status' => 'inactive']);
+
+        \Filament\Facades\Filament::setCurrentPanel(\Filament\Facades\Filament::getPanel('franchise'));
+
+        \Livewire\Livewire::test(\App\Filament\Pages\Auth\FranchiseLogin::class)
+            ->set('data.email', 'trainer@apextech.com')
+            ->set('data.password', 'password')
+            ->call('authenticate')
+            ->assertHasErrors(['data.email']);
+
+        $this->assertGuest();
+
+        // Revert status
+        $trainer->update(['status' => 'active']);
+    }
+
+    /** Test 31: Cross-Portal Smart Routing directs roles to their exact workspace */
+    public function test_cross_portal_smart_redirection_for_all_roles(): void
+    {
+        // 1. Franchise Staff logging in at Admin portal gets smoothly routed to Tenant Hub
+        \Filament\Facades\Filament::setCurrentPanel(\Filament\Facades\Filament::getPanel('admin'));
+
+        \Livewire\Livewire::test(\App\Filament\Pages\Auth\AdminLogin::class)
+            ->set('data.email', 'admin@apex-downtown.com')
+            ->set('data.password', 'password')
+            ->call('authenticate')
+            ->assertRedirect(url('/app/apex-institute'));
+
+        auth()->logout();
+
+        // 2. Student logging in at Franchise Hub gets smoothly routed to Student Portal
+        \Filament\Facades\Filament::setCurrentPanel(\Filament\Facades\Filament::getPanel('franchise'));
+
+        \Livewire\Livewire::test(\App\Filament\Pages\Auth\FranchiseLogin::class)
+            ->set('data.email', 'student@apextech.com')
+            ->set('data.password', 'password')
+            ->call('authenticate')
+            ->assertRedirect(route('student.dashboard'));
+    }
 }

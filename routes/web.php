@@ -7,15 +7,31 @@ use Illuminate\Support\Facades\Route;
 
 // Defensive POST handlers for Filament login routes (fallback for direct/non-JS form posts)
 Route::post('/admin/login', function (\Illuminate\Http\Request $request) {
-    $email = $request->input('email') ?? $request->input('data.email');
+    $login = trim($request->input('email') ?? $request->input('data.email') ?? '');
     $password = $request->input('password') ?? $request->input('data.password');
     $remember = (bool) ($request->input('remember') ?? $request->input('data.remember', false));
 
-    if ($email && $password && \Illuminate\Support\Facades\Auth::attempt(['email' => $email, 'password' => $password], $remember)) {
+    $cleanedPhone = preg_replace('/[^0-9]/', '', $login);
+    $user = \App\Models\User::where(function ($query) use ($login, $cleanedPhone) {
+        $query->where('email', $login)->orWhere('phone', $login);
+        if (!empty($cleanedPhone) && strlen($cleanedPhone) >= 7) {
+            $query->orWhere('phone', 'like', '%' . substr($cleanedPhone, -10));
+        }
+    })->first();
+
+    if ($user && \Illuminate\Support\Facades\Hash::check($password, $user->password)) {
+        if ($user->status !== 'active') {
+            return back()->withErrors(['data.email' => 'Your account has been deactivated. Please contact administrator.']);
+        }
+
+        \Illuminate\Support\Facades\Auth::login($user, $remember);
         $request->session()->regenerate();
-        $user = \Illuminate\Support\Facades\Auth::user();
+
         if ($user->role === 'super_admin') {
             return redirect('/admin');
+        }
+        if ($user->role === 'student') {
+            return redirect()->route('student.dashboard');
         }
         if ($user->franchise) {
             return redirect('/app/' . $user->franchise->slug);
@@ -29,18 +45,34 @@ Route::post('/admin/login', function (\Illuminate\Http\Request $request) {
 })->middleware('web');
 
 Route::post('/app/login', function (\Illuminate\Http\Request $request) {
-    $email = $request->input('email') ?? $request->input('data.email');
+    $login = trim($request->input('email') ?? $request->input('data.email') ?? '');
     $password = $request->input('password') ?? $request->input('data.password');
     $remember = (bool) ($request->input('remember') ?? $request->input('data.remember', false));
 
-    if ($email && $password && \Illuminate\Support\Facades\Auth::attempt(['email' => $email, 'password' => $password], $remember)) {
-        $request->session()->regenerate();
-        $user = \Illuminate\Support\Facades\Auth::user();
-        if ($user->franchise) {
-            return redirect('/app/' . $user->franchise->slug);
+    $cleanedPhone = preg_replace('/[^0-9]/', '', $login);
+    $user = \App\Models\User::where(function ($query) use ($login, $cleanedPhone) {
+        $query->where('email', $login)->orWhere('phone', $login);
+        if (!empty($cleanedPhone) && strlen($cleanedPhone) >= 7) {
+            $query->orWhere('phone', 'like', '%' . substr($cleanedPhone, -10));
         }
+    })->first();
+
+    if ($user && \Illuminate\Support\Facades\Hash::check($password, $user->password)) {
+        if ($user->status !== 'active') {
+            return back()->withErrors(['data.email' => 'Your account has been deactivated. Please contact center administrator.']);
+        }
+
+        \Illuminate\Support\Facades\Auth::login($user, $remember);
+        $request->session()->regenerate();
+
         if ($user->role === 'super_admin') {
             return redirect('/admin');
+        }
+        if ($user->role === 'student') {
+            return redirect()->route('student.dashboard');
+        }
+        if ($user->franchise) {
+            return redirect('/app/' . $user->franchise->slug);
         }
         return redirect('/app');
     }
