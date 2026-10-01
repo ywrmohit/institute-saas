@@ -15,7 +15,7 @@ class BranchResource extends Resource
     protected static ?string $model = Branch::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-building-storefront';
-    protected static ?string $navigationGroup = 'Branches & Staff';
+    protected static ?string $navigationGroup = 'Center Management';
     protected static ?int $navigationSort = 1;
 
     public static function canViewAny(): bool

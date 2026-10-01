@@ -33,17 +33,23 @@
                     Verify Certificate
                 </a>
                 <div class="flex items-center space-x-3 pl-3 border-l border-slate-200 dark:border-slate-700">
-                    <div class="text-right hidden sm:block">
-                        <span class="text-xs font-bold text-slate-900 dark:text-white block leading-tight">{{ $student->full_name }}</span>
-                        <span class="text-[10px] font-mono text-slate-400">{{ $student->student_id_code }}</span>
-                    </div>
-                    @if($student->photo)
-                        <img src="{{ asset('storage/' . $student->photo) }}" alt="Avatar" class="w-9 h-9 rounded-full object-cover border border-slate-200">
-                    @else
-                        <div class="w-9 h-9 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300 font-bold flex items-center justify-center text-xs">
-                            {{ substr($student->first_name, 0, 1) }}{{ substr($student->last_name ?? '', 0, 1) }}
+                    <a href="{{ route('student.profile') }}" class="flex items-center space-x-2.5 hover:opacity-80 transition group">
+                        <div class="text-right hidden sm:block">
+                            <span class="text-xs font-bold text-slate-900 dark:text-white block leading-tight group-hover:text-blue-600 transition">{{ $student->full_name }}</span>
+                            <span class="text-[10px] font-mono text-slate-400">{{ $student->student_id_code }}</span>
                         </div>
-                    @endif
+                        @if($student->photo)
+                            <img src="{{ asset('storage/' . $student->photo) }}" alt="Avatar" class="w-9 h-9 rounded-full object-cover border-2 border-transparent group-hover:border-blue-500 transition">
+                        @else
+                            <div class="w-9 h-9 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300 font-bold flex items-center justify-center text-xs group-hover:bg-blue-200 transition">
+                                {{ substr($student->first_name, 0, 1) }}{{ substr($student->last_name ?? '', 0, 1) }}
+                            </div>
+                        @endif
+                    </a>
+                    <a href="{{ route('student.profile') }}" class="px-2.5 py-1.5 text-xs font-bold text-blue-600 bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 rounded-lg transition hidden md:inline-flex items-center space-x-1">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                        <span>Profile</span>
+                    </a>
                     <form action="{{ route('student.logout') }}" method="POST">
                         @csrf
                         <button type="submit" title="Logout" class="p-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 transition">

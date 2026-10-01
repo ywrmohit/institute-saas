@@ -24,6 +24,7 @@ class StudentResource extends Resource
     protected static ?string $model = Student::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-academic-cap';
+    protected static ?string $navigationGroup = 'Student Lifecycle';
     protected static ?int $navigationSort = 1;
 
     public static function canViewAny(): bool
@@ -80,6 +81,7 @@ class StudentResource extends Resource
                                 Forms\Components\FileUpload::make('photo')
                                     ->image()
                                     ->directory('student-photos')
+                                    ->disk('public')
                                     ->avatar()
                                     ->columnSpanFull(),
                                 Forms\Components\TextInput::make('admission_number')
@@ -245,7 +247,8 @@ class StudentResource extends Resource
             ->columns([
                 Tables\Columns\ImageColumn::make('photo')
                     ->circular()
-                    ->defaultImageUrl(url('/default-avatar.png')),
+                    ->disk('public')
+                    ->defaultImageUrl(fn(Student $record): string => 'https://ui-avatars.com/api/?name=' . urlencode($record->full_name) . '&background=0284c7&color=fff'),
                 Tables\Columns\TextColumn::make('full_name')
                     ->label('Student Name')
                     ->searchable(['first_name', 'last_name'])
@@ -462,7 +465,8 @@ class StudentResource extends Resource
                     ->schema([
                         Infolists\Components\ImageEntry::make('photo')
                             ->circular()
-                            ->defaultImageUrl(url('/default-avatar.png')),
+                            ->disk('public')
+                            ->defaultImageUrl(fn(Student $record): string => 'https://ui-avatars.com/api/?name=' . urlencode($record->full_name) . '&background=0284c7&color=fff'),
                         Infolists\Components\TextEntry::make('full_name')
                             ->label('Student Name')
                             ->size(Infolists\Components\TextEntry\TextEntrySize::Large)

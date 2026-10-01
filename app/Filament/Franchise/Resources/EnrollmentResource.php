@@ -18,7 +18,8 @@ class EnrollmentResource extends Resource
     protected static ?string $model = Enrollment::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-clipboard-document-check';
-    protected static ?string $navigationGroup = 'Student Admissions';
+    protected static ?string $navigationGroup = 'Student Lifecycle';
+    protected static ?string $navigationLabel = 'Admissions & Enrollments';
     protected static ?int $navigationSort = 2;
 
     public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder

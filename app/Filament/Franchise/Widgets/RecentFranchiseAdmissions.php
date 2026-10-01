@@ -2,6 +2,7 @@
 
 namespace App\Filament\Franchise\Widgets;
 
+use App\Filament\Franchise\Resources\StudentResource;
 use App\Models\Student;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -9,7 +10,7 @@ use Filament\Widgets\TableWidget as BaseWidget;
 
 class RecentFranchiseAdmissions extends BaseWidget
 {
-    protected static ?int $sort = 2;
+    protected static ?int $sort = 5;
     protected int | string | array $columnSpan = 'full';
 
     public function table(Table $table): Table
@@ -26,12 +27,15 @@ class RecentFranchiseAdmissions extends BaseWidget
                     $query->where('branch_id', $user->branch_id);
                 }
 
-                return $query->limit(5);
+                return $query->limit(6);
             })
             ->heading('Recent Student Admissions')
+            ->recordUrl(fn(Student $record): string => StudentResource::getUrl('view', ['record' => $record]))
             ->columns([
                 Tables\Columns\ImageColumn::make('photo')
-                    ->circular(),
+                    ->circular()
+                    ->disk('public')
+                    ->defaultImageUrl(fn(Student $record): string => 'https://ui-avatars.com/api/?name=' . urlencode($record->full_name) . '&color=FFFFFF&background=0284c7'),
                 Tables\Columns\TextColumn::make('full_name')
                     ->label('Student Name')
                     ->weight('bold')
@@ -43,7 +47,7 @@ class RecentFranchiseAdmissions extends BaseWidget
                 Tables\Columns\TextColumn::make('phone')
                     ->icon('heroicon-m-phone'),
                 Tables\Columns\TextColumn::make('admission_date')
-                    ->date(),
+                    ->date('d M Y'),
                 Tables\Columns\TextColumn::make('status')
                     ->badge()
                     ->color(fn(string $state): string => match ($state) {

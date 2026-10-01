@@ -45,6 +45,19 @@ class Student extends Model
         return trim("{$this->first_name} {$this->last_name}");
     }
 
+    public function getPhotoUrlAttribute(): ?string
+    {
+        if (empty($this->photo)) {
+            return null;
+        }
+
+        if (str_starts_with($this->photo, 'http://') || str_starts_with($this->photo, 'https://')) {
+            return $this->photo;
+        }
+
+        return asset('storage/' . ltrim($this->photo, '/'));
+    }
+
     public function branch(): BelongsTo
     {
         return $this->belongsTo(Branch::class);

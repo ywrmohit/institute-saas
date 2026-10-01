@@ -15,6 +15,8 @@ use App\Models\User;
 use App\Services\ExamService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 
 class StudentPortalController extends Controller
 {
@@ -246,6 +248,105 @@ class StudentPortalController extends Controller
         }
 
         return view('student.id-card', compact('student'));
+    }
+
+    /**
+     * Show Student Profile screen.
+     */
+    public function profile()
+    {
+        $user = Auth::user();
+        $student = Student::with([
+            'branch',
+            'franchise',
+            'enrollments.course',
+            'enrollments.batch.trainer',
+        ])->where('user_id', $user->id)->orWhere('email', $user->email)->first();
+
+        if (!$student) {
+            return view('student.no-profile');
+        }
+
+        $attendancePercentage = $student->calculateAttendancePercentage();
+        $certificates = Certificate::with('course')->where('student_id', $student->id)->get();
+
+        return view('student.profile', compact('student', 'user', 'attendancePercentage', 'certificates'));
+    }
+
+    /**
+     * Update Student Personal Profile.
+     */
+    public function updateProfile(Request $request)
+    {
+        $user = Auth::user();
+        $student = Student::where('user_id', $user->id)->orWhere('email', $user->email)->firstOrFail();
+
+        $validated = $request->validate([
+            'first_name' => 'required|string|max:100',
+            'last_name' => 'nullable|string|max:100',
+            'phone' => 'required|string|max:20',
+            'guardian_name' => 'nullable|string|max:100',
+            'guardian_phone' => 'nullable|string|max:20',
+            'date_of_birth' => 'nullable|date',
+            'gender' => 'required|in:male,female,other',
+            'qualification' => 'nullable|string|max:100',
+            'address' => 'nullable|string|max:500',
+        ]);
+
+        $student->update($validated);
+
+        // Keep user name & phone in sync
+        $fullName = trim("{$request->first_name} {$request->last_name}");
+        $user->update([
+            'name' => $fullName,
+            'phone' => $request->phone,
+        ]);
+
+        return back()->with('success', 'Profile information updated successfully.');
+    }
+
+    /**
+     * Update Student Profile Photo.
+     */
+    public function updatePhoto(Request $request)
+    {
+        $user = Auth::user();
+        $student = Student::where('user_id', $user->id)->orWhere('email', $user->email)->firstOrFail();
+
+        $request->validate([
+            'photo' => 'required|image|mimes:jpeg,png,jpg,webp|max:2048',
+        ]);
+
+        // Delete old photo if exists
+        if ($student->photo && Storage::disk('public')->exists($student->photo)) {
+            Storage::disk('public')->delete($student->photo);
+        }
+
+        $path = $request->file('photo')->store('students/photos', 'public');
+
+        $student->update(['photo' => $path]);
+        $user->update(['avatar' => $path]);
+
+        return back()->with('success', 'Profile photo updated and synced with your official ID card.');
+    }
+
+    /**
+     * Update Student Account Password.
+     */
+    public function updatePassword(Request $request)
+    {
+        $user = Auth::user();
+
+        $request->validate([
+            'current_password' => 'required|current_password',
+            'password' => 'required|string|min:6|confirmed',
+        ]);
+
+        $user->update([
+            'password' => Hash::make($request->password),
+        ]);
+
+        return back()->with('success', 'Password updated successfully. Please use your new password next time you sign in.');
     }
 
     /**

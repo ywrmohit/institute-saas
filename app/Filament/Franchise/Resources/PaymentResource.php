@@ -71,6 +71,7 @@ class PaymentResource extends Resource
                             ->options(fn() => Student::all()->pluck('full_name', 'id'))
                             ->searchable()
                             ->required()
+                            ->default(fn() => request()->query('student_id'))
                             ->reactive(),
                         Forms\Components\Select::make('fee_invoice_id')
                             ->label('Fee Invoice')
@@ -80,10 +81,17 @@ class PaymentResource extends Resource
                                 return FeeInvoice::where('student_id', $studentId)->pluck('title', 'id');
                             })
                             ->required()
+                            ->default(fn() => request()->query('fee_invoice_id'))
                             ->searchable(),
                         Forms\Components\Select::make('branch_id')
                             ->relationship('branch', 'name')
                             ->required()
+                            ->default(function () {
+                                if ($invoiceId = request()->query('fee_invoice_id')) {
+                                    return FeeInvoice::find($invoiceId)?->branch_id;
+                                }
+                                return auth()->user()?->branch_id;
+                            })
                             ->searchable()
                             ->preload(),
                         Forms\Components\TextInput::make('receipt_number')
@@ -92,6 +100,12 @@ class PaymentResource extends Resource
                         Forms\Components\TextInput::make('amount')
                             ->numeric()
                             ->prefix('₹')
+                            ->default(function () {
+                                if ($invoiceId = request()->query('fee_invoice_id')) {
+                                    return FeeInvoice::find($invoiceId)?->pending_amount;
+                                }
+                                return null;
+                            })
                             ->required(),
                         Forms\Components\Select::make('payment_method')
                             ->options([

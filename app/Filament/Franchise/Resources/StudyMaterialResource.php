@@ -16,9 +16,9 @@ class StudyMaterialResource extends Resource
 {
     protected static ?string $model = StudyMaterial::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-folder';
-    protected static ?string $navigationGroup = 'Operations';
-    protected static ?int $navigationSort = 2;
+    protected static ?string $navigationIcon = 'heroicon-o-folder-open';
+    protected static ?string $navigationGroup = 'Academics';
+    protected static ?int $navigationSort = 3;
 
     public static function canViewAny(): bool
     {

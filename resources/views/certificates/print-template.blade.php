@@ -58,15 +58,19 @@
         <!-- Certificate Header -->
         <div class="text-center relative z-10 pt-2">
             <div class="flex items-center justify-center space-x-3 mb-2">
-                <div class="w-12 h-12 rounded-full bg-blue-900 text-amber-400 flex items-center justify-center font-bold text-xl shadow-md border-2 border-amber-400">
-                    ★
-                </div>
+                @if($certificate->franchise->logo)
+                    <img src="{{ asset('storage/' . $certificate->franchise->logo) }}" alt="{{ $certificate->franchise->name }}" class="w-14 h-14 object-contain rounded-xl shadow-md border-2 border-amber-300 bg-white p-1">
+                @else
+                    <div class="w-12 h-12 rounded-full bg-blue-900 text-amber-400 flex items-center justify-center font-bold text-xl shadow-md border-2 border-amber-400">
+                        ★
+                    </div>
+                @endif
                 <div>
                     <h2 class="text-2xl sm:text-3xl font-extrabold uppercase tracking-wider text-blue-950 font-serif-header">
                         {{ $certificate->franchise->name }}
                     </h2>
                     <p class="text-xs uppercase tracking-widest font-semibold text-amber-700">
-                        {{ $certificate->branch->name }} &bull; Accredited Training Network
+                        {{ $certificate->franchise->tagline ?: ($certificate->branch->name . ' • Accredited Training Network') }}
                     </p>
                 </div>
             </div>
@@ -120,28 +124,38 @@
                 </div>
             </div>
 
-            <!-- Center: Gold Foil Official Seal -->
+            <!-- Center: Gold Foil Official Seal / Uploaded Circular Stamp -->
             <div class="hidden sm:flex flex-col items-center justify-center">
-                <div class="w-20 h-20 rounded-full bg-gradient-to-tr from-amber-600 via-yellow-400 to-amber-500 text-blue-950 flex flex-col items-center justify-center shadow-lg border-2 border-white ring-2 ring-amber-400">
-                    <svg class="w-6 h-6 text-blue-950 mb-0.5" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
-                    </svg>
-                    <span class="text-[8px] uppercase tracking-widest font-extrabold text-blue-950">VERIFIED</span>
-                </div>
+                @if($certificate->franchise->stamp)
+                    <div class="relative w-24 h-24 flex items-center justify-center">
+                        <img src="{{ asset('storage/' . $certificate->franchise->stamp) }}" alt="Official Seal Stamp" class="w-24 h-24 object-contain drop-shadow-md rotate-[-6deg]">
+                    </div>
+                @else
+                    <div class="w-20 h-20 rounded-full bg-gradient-to-tr from-amber-600 via-yellow-400 to-amber-500 text-blue-950 flex flex-col items-center justify-center shadow-lg border-2 border-white ring-2 ring-amber-400">
+                        <svg class="w-6 h-6 text-blue-950 mb-0.5" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                        </svg>
+                        <span class="text-[8px] uppercase tracking-widest font-extrabold text-blue-950">VERIFIED</span>
+                    </div>
+                @endif
             </div>
 
             <!-- Right: Signatures -->
             <div class="flex items-center space-x-8 text-center">
                 <div>
-                    <div class="h-10 border-b border-slate-400 flex items-end justify-center">
-                        <span class="font-script text-2xl text-blue-900 leading-none">R. K. Sharma</span>
+                    <div class="h-12 border-b border-slate-400 flex items-end justify-center pb-1">
+                        @if($certificate->franchise->signature)
+                            <img src="{{ asset('storage/' . $certificate->franchise->signature) }}" alt="Director Signature" class="h-10 max-w-[130px] object-contain">
+                        @else
+                            <span class="font-script text-2xl text-blue-900 leading-none">R. K. Sharma</span>
+                        @endif
                     </div>
                     <span class="text-[11px] font-bold text-slate-800 block mt-1 uppercase tracking-wider">Academic Director</span>
                     <span class="text-[9px] text-slate-400 block">{{ $certificate->franchise->name }}</span>
                 </div>
 
                 <div>
-                    <div class="h-10 border-b border-slate-400 flex items-end justify-center">
+                    <div class="h-12 border-b border-slate-400 flex items-end justify-center pb-1">
                         <span class="font-script text-2xl text-blue-900 leading-none">Anand Verma</span>
                     </div>
                     <span class="text-[11px] font-bold text-slate-800 block mt-1 uppercase tracking-wider">Center Head</span>

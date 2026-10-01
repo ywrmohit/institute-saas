@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Filament\Models\Contracts\FilamentUser;
+use Filament\Models\Contracts\HasAvatar;
 use Filament\Models\Contracts\HasTenants;
 use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -15,7 +16,7 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Collection;
 use Spatie\Permission\Traits\HasRoles;
 
-class User extends Authenticatable implements FilamentUser, HasTenants
+class User extends Authenticatable implements FilamentUser, HasTenants, HasAvatar
 {
     use HasFactory, Notifiable, HasRoles;
 
@@ -161,5 +162,18 @@ class User extends Authenticatable implements FilamentUser, HasTenants
         }
 
         return $this->franchise_id === $tenant->id && $this->status === 'active';
+    }
+
+    public function getFilamentAvatarUrl(): ?string
+    {
+        if (empty($this->avatar)) {
+            return null;
+        }
+
+        if (str_starts_with($this->avatar, 'http://') || str_starts_with($this->avatar, 'https://')) {
+            return $this->avatar;
+        }
+
+        return asset('storage/' . ltrim($this->avatar, '/'));
     }
 }

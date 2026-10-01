@@ -149,6 +149,10 @@ Route::prefix('student')->group(function () {
 
     Route::middleware(['auth'])->group(function () {
         Route::get('/dashboard', [StudentPortalController::class, 'dashboard'])->name('student.dashboard');
+        Route::get('/profile', [StudentPortalController::class, 'profile'])->name('student.profile');
+        Route::post('/profile', [StudentPortalController::class, 'updateProfile'])->name('student.profile.update');
+        Route::post('/profile/photo', [StudentPortalController::class, 'updatePhoto'])->name('student.profile.photo');
+        Route::post('/profile/password', [StudentPortalController::class, 'updatePassword'])->name('student.profile.password');
         Route::get('/exams/{id}', [StudentPortalController::class, 'takeExam'])->name('student.exam.take');
         Route::post('/exams/{id}/submit', [StudentPortalController::class, 'submitExam'])->name('student.exam.submit');
     });

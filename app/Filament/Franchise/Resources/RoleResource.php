@@ -16,9 +16,9 @@ class RoleResource extends Resource
     protected static ?string $model = Role::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-shield-check';
-    protected static ?string $navigationGroup = 'Administration & Security';
+    protected static ?string $navigationGroup = 'Settings & Administration';
     protected static ?string $navigationLabel = 'Roles & Permissions';
-    protected static ?int $navigationSort = 10;
+    protected static ?int $navigationSort = 99;
 
     public static function canViewAny(): bool
     {

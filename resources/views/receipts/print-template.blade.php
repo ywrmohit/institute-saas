@@ -31,13 +31,21 @@
     <div class="receipt-box max-w-2xl w-full bg-white rounded-2xl shadow-xl border border-slate-200 p-8 sm:p-10 text-slate-800">
         <!-- Header -->
         <div class="flex items-start justify-between pb-6 border-b border-slate-200">
-            <div>
-                <h1 class="text-2xl font-black text-blue-900 tracking-tight">{{ $payment->franchise->name }}</h1>
-                <p class="text-xs font-semibold text-slate-500 mt-0.5">{{ $payment->branch->name }} Center</p>
-                <p class="text-xs text-slate-400 mt-1">{{ $payment->branch->address ?? 'Central Academic Building' }}, {{ $payment->branch->city ?? 'Campus' }}</p>
-                @if($payment->branch->phone)
-                    <p class="text-xs text-slate-400">Tel: {{ $payment->branch->phone }}</p>
+            <div class="flex items-start space-x-4">
+                @if($payment->franchise->logo)
+                    <img src="{{ asset('storage/' . $payment->franchise->logo) }}" alt="Logo" class="w-14 h-14 object-contain rounded-xl border border-slate-200 p-1 bg-white shadow-sm">
                 @endif
+                <div>
+                    <h1 class="text-2xl font-black text-blue-900 tracking-tight">{{ $payment->franchise->name }}</h1>
+                    @if($payment->franchise->tagline)
+                        <p class="text-xs text-blue-600 font-semibold">{{ $payment->franchise->tagline }}</p>
+                    @endif
+                    <p class="text-xs font-semibold text-slate-500 mt-0.5">{{ $payment->branch->name }} Center</p>
+                    <p class="text-xs text-slate-400 mt-0.5">{{ $payment->branch->address ?? 'Central Academic Building' }}, {{ $payment->branch->city ?? 'Campus' }}</p>
+                    @if($payment->franchise->tax_number)
+                        <p class="text-[11px] text-slate-600 font-mono mt-0.5">GSTIN: <span class="font-bold text-slate-800">{{ $payment->franchise->tax_number }}</span></p>
+                    @endif
+                </div>
             </div>
 
             <div class="text-right">
@@ -127,11 +135,23 @@
                 <p class="text-[10px] text-slate-400 font-mono mt-2">Cashier: {{ $payment->receivedBy?->name ?? 'Accounts Desk' }}</p>
             </div>
 
-            <div class="text-center">
-                <div class="w-36 border-b border-slate-300 pb-1">
-                    <span class="font-mono text-xs font-bold text-slate-700">[Authorized Stamp]</span>
+            <div class="flex items-end space-x-6">
+                @if($payment->franchise->stamp)
+                    <div class="text-center">
+                        <img src="{{ asset('storage/' . $payment->franchise->stamp) }}" alt="Official Stamp" class="w-16 h-16 object-contain rotate-[-4deg] opacity-90 mx-auto mb-1">
+                        <span class="text-[9px] font-bold uppercase tracking-wider block text-slate-400">Official Seal</span>
+                    </div>
+                @endif
+                <div class="text-center">
+                    <div class="w-36 border-b border-slate-300 pb-1 min-h-[44px] flex items-end justify-center">
+                        @if($payment->franchise->signature)
+                            <img src="{{ asset('storage/' . $payment->franchise->signature) }}" alt="Authorized Signature" class="h-10 max-w-[120px] object-contain">
+                        @else
+                            <span class="font-mono text-xs font-bold text-slate-700">[Authorized Stamp]</span>
+                        @endif
+                    </div>
+                    <span class="text-[10px] font-bold uppercase tracking-wider block mt-1">Authorized Cashier</span>
                 </div>
-                <span class="text-[10px] font-bold uppercase tracking-wider block mt-1">Authorized Cashier</span>
             </div>
         </div>
     </div>

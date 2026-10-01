@@ -15,8 +15,9 @@ class AnnouncementResource extends Resource
     protected static ?string $model = Announcement::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-megaphone';
-    protected static ?string $navigationGroup = 'Operations';
-    protected static ?int $navigationSort = 3;
+    protected static ?string $navigationGroup = 'Academics';
+    protected static ?string $navigationLabel = 'Noticeboard';
+    protected static ?int $navigationSort = 4;
 
     public static function canViewAny(): bool
     {

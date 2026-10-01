@@ -20,7 +20,7 @@ class TrainerResource extends Resource
     protected static ?string $modelLabel = 'Staff & Trainer';
     protected static ?string $pluralModelLabel = 'Staff & Trainers';
     protected static ?string $navigationIcon = 'heroicon-o-user-group';
-    protected static ?string $navigationGroup = 'Branches & Staff';
+    protected static ?string $navigationGroup = 'Center Management';
     protected static ?int $navigationSort = 2;
 
     public static function canViewAny(): bool

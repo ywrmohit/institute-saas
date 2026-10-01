@@ -64,12 +64,16 @@
             <!-- Header Band -->
             <div class="bg-gradient-to-r from-blue-700 via-blue-800 to-indigo-900 px-3 py-1.5 flex items-center justify-between text-white">
                 <div class="flex items-center space-x-2">
-                    <div class="w-6 h-6 rounded-full bg-white text-blue-700 font-extrabold flex items-center justify-center text-xs shadow-inner">
-                        {{ strtoupper(substr(setting('app_name', 'Remax'), 0, 2)) }}
-                    </div>
+                    @if($student->franchise?->logo)
+                        <img src="{{ asset('storage/' . $student->franchise->logo) }}" alt="Logo" class="w-6 h-6 object-contain rounded bg-white/20 p-0.5 shadow-sm">
+                    @else
+                        <div class="w-6 h-6 rounded-full bg-white text-blue-700 font-extrabold flex items-center justify-center text-xs shadow-inner">
+                            {{ strtoupper(substr($student->franchise?->name ?? setting('app_name', 'Remax'), 0, 2)) }}
+                        </div>
+                    @endif
                     <div>
-                        <div class="text-[9px] font-black uppercase tracking-wider leading-none">{{ setting('app_name', 'Remax') }} Institute SaaS</div>
-                        <div class="text-[7.5px] text-blue-200 font-medium leading-tight">{{ $student->franchise?->name ?? 'Apex Tech Institute' }}</div>
+                        <div class="text-[9px] font-black uppercase tracking-wider leading-none">{{ $student->franchise?->name ?? (setting('app_name', 'Remax') . ' Institute') }}</div>
+                        <div class="text-[7.5px] text-blue-200 font-medium leading-tight">{{ $student->franchise?->tagline ?? ($student->branch?->name . ' • Accredited Campus') }}</div>
                     </div>
                 </div>
                 <span class="text-[6.5px] font-bold uppercase bg-blue-500/40 px-1.5 py-0.5 rounded text-blue-100 tracking-wider">STUDENT ID</span>
@@ -163,7 +167,12 @@
             <!-- Back Footer: Signatures -->
             <div class="border-t border-slate-200 px-3 py-1 flex items-center justify-between text-[6.5px] text-slate-400 bg-slate-50">
                 <div>Student Signature</div>
-                <div class="font-semibold text-slate-700">Authorized Signatory / Principal</div>
+                <div class="flex flex-col items-center">
+                    @if($student->franchise?->signature)
+                        <img src="{{ asset('storage/' . $student->franchise->signature) }}" alt="Director Signature" class="h-4 max-w-[60px] object-contain">
+                    @endif
+                    <span class="font-semibold text-slate-700">Authorized Signatory / Principal</span>
+                </div>
             </div>
         </div>
 

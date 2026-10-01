@@ -675,4 +675,278 @@ class SaaSTest extends TestCase
         $responseReset->assertStatus(200);
         $responseReset->assertSee('Remax');
     }
+
+    /** Test 35: Authenticated student can view and update their profile */
+    public function test_authenticated_student_can_view_and_update_profile(): void
+    {
+        $studentUser = User::where('role', 'student')->first();
+        $this->actingAs($studentUser);
+
+        // 1. View profile page
+        $response = $this->get('/student/profile');
+        $response->assertStatus(200);
+        $response->assertSee($studentUser->student->student_id_code);
+        $response->assertSee('Personal Details');
+        $response->assertSee('Change Account Password');
+
+        $originalStudent = $studentUser->student;
+        $origFirstName = $originalStudent->first_name;
+        $origLastName = $originalStudent->last_name;
+        $origStudentPhone = $originalStudent->phone;
+        $origGender = $originalStudent->gender;
+        $origGuardianName = $originalStudent->guardian_name;
+        $origGuardianPhone = $originalStudent->guardian_phone;
+        $origQualification = $originalStudent->qualification;
+        $origAddress = $originalStudent->address;
+        $origUserName = $studentUser->name;
+        $origUserPhone = $studentUser->phone;
+
+        try {
+            // 2. Update profile details
+            $responseUpdate = $this->post('/student/profile', [
+                'first_name' => 'Aarav Updated',
+                'last_name' => 'Sharma',
+                'phone' => '+91 99999 88888',
+                'gender' => 'male',
+                'guardian_name' => 'Sanjay Sharma',
+                'guardian_phone' => '+91 98765 00002',
+                'qualification' => 'Postgraduate',
+                'address' => 'Updated Street 101, Pune',
+            ]);
+
+            $responseUpdate->assertRedirect();
+            $responseUpdate->assertSessionHas('success');
+
+            $student = $studentUser->student->fresh();
+            $this->assertEquals('Aarav Updated', $student->first_name);
+            $this->assertEquals('+91 99999 88888', $student->phone);
+            $this->assertEquals('Postgraduate', $student->qualification);
+        } finally {
+            // Restore original seeded attributes directly in DB to preserve test isolation
+            \App\Models\Student::withoutGlobalScopes()->where('user_id', $studentUser->id)->update([
+                'first_name' => 'Aarav',
+                'last_name' => 'Sharma',
+                'phone' => '+91 98765 00001',
+                'gender' => 'male',
+                'guardian_name' => 'Sanjay Sharma',
+                'guardian_phone' => '+91 98765 00002',
+                'qualification' => 'Undergraduate (Pursuing)',
+                'address' => 'Flat 302, Green Valley Apartments, Shivajinagar, Pune',
+            ]);
+            \App\Models\User::where('id', $studentUser->id)->update([
+                'name' => 'Aarav Sharma',
+                'phone' => '9876543214',
+            ]);
+        }
+    }
+
+    /** Test 36: Student can update password with current password verification */
+    public function test_student_can_update_password(): void
+    {
+        $studentUser = User::where('role', 'student')->first();
+        $this->actingAs($studentUser);
+
+        $response = $this->post('/student/profile/password', [
+            'current_password' => 'password',
+            'password' => 'newsecretpassword123',
+            'password_confirmation' => 'newsecretpassword123',
+        ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
+
+        $studentUser->refresh();
+        $this->assertTrue(\Illuminate\Support\Facades\Hash::check('newsecretpassword123', $studentUser->password));
+
+        // Restore back to password for subsequent tests
+        $studentUser->update(['password' => \Illuminate\Support\Facades\Hash::make('password')]);
+    }
+
+    /** Test 37: Filament Central Admin EditProfile route is registered and accessible */
+    public function test_filament_admin_profile_page_accessible(): void
+    {
+        $admin = User::where('role', 'super_admin')->first();
+        $this->actingAs($admin);
+
+        $responseAdmin = $this->get('/admin/profile');
+        $responseAdmin->assertStatus(200);
+        $responseAdmin->assertSee('Profile Information');
+    }
+
+    /** Test 38: Filament Franchise EditProfile route is registered and accessible */
+    public function test_filament_franchise_profile_page_accessible(): void
+    {
+        $owner = User::where('role', 'franchise_owner')->first();
+        $this->actingAs($owner);
+
+        $responseApp = $this->get('/app/profile');
+        $responseApp->assertStatus(200);
+        $responseApp->assertSee('Profile Information');
+        $responseApp->assertSee('Personal Profile &amp; Account Settings', false);
+    }
+
+    /** Test 39: Franchise Owner can access dedicated Institute Profile & Branding page */
+    public function test_franchise_owner_can_access_institute_profile_page(): void
+    {
+        $owner = User::where('role', 'franchise_owner')->first();
+        $this->actingAs($owner);
+
+        $response = $this->get('/app/apex-institute/institute-profile');
+        $response->assertStatus(200);
+        $response->assertSee('Apex Institute of Information Technology');
+        $response->assertSee('APEX01');
+        $response->assertSee('Official Institutional Branding &amp; Seals', false);
+        $response->assertSee('Subscription Tier');
+    }
+
+    /** Test 40: Franchise Owner can update institute profile details & branding */
+    public function test_franchise_owner_can_update_institute_profile_data(): void
+    {
+        $owner = User::where('role', 'franchise_owner')->first();
+        $this->actingAs($owner);
+
+        $franchise = Franchise::where('slug', 'apex-institute')->first();
+        \Filament\Facades\Filament::setCurrentPanel(\Filament\Facades\Filament::getPanel('franchise'));
+        \Filament\Facades\Filament::setTenant($franchise);
+
+        $originalTagline = $franchise->tagline;
+        $originalWebsite = $franchise->website;
+
+        try {
+            \Livewire\Livewire::test(\App\Filament\Franchise\Pages\InstituteProfile::class)
+                ->fillForm([
+                    'tagline' => 'Empowering Future Innovators Today',
+                    'website' => 'https://apextech.edu.in',
+                ])
+                ->call('save')
+                ->assertHasNoErrors();
+
+            $franchise->refresh();
+            $this->assertEquals('Empowering Future Innovators Today', $franchise->tagline);
+            $this->assertEquals('https://apextech.edu.in', $franchise->website);
+        } finally {
+            // Restore original attributes to ensure test idempotency
+            $franchise->update([
+                'tagline' => $originalTagline,
+                'website' => $originalWebsite,
+            ]);
+        }
+    }
+
+    /** Test 41: In-Panel User Profile preserves sidebar, header navigation, and allows profile updates */
+    public function test_franchise_staff_in_panel_user_profile_preserves_sidebar_and_header(): void
+    {
+        $owner = User::where('role', 'franchise_owner')->first();
+        $this->actingAs($owner);
+
+        $response = $this->get('/app/apex-institute/profile');
+        $response->assertStatus(200);
+
+        // Asserts presence of in-panel shell: sidebar items, header, and user details
+        $response->assertSee('Personal Profile &amp; Account Settings', false);
+        $response->assertSee($owner->name);
+        $response->assertSee('apex-institute');
+        $response->assertSee('Dashboard');
+        $response->assertSee('Students');
+        $response->assertSee('Profile Information');
+
+        $franchise = Franchise::where('slug', 'apex-institute')->first();
+        \Filament\Facades\Filament::setCurrentPanel(\Filament\Facades\Filament::getPanel('franchise'));
+        \Filament\Facades\Filament::setTenant($franchise);
+
+        $origName = $owner->name;
+        $origPhone = $owner->phone;
+
+        try {
+            \Livewire\Livewire::test(\App\Filament\Franchise\Pages\UserProfile::class)
+                ->fillForm([
+                    'name' => 'Dr. Rajesh Varma Updated',
+                    'phone' => '+91 99999 77777',
+                    'designation' => 'Managing Director & Founder',
+                ])
+                ->call('save')
+                ->assertHasNoErrors();
+
+            $owner->refresh();
+            $this->assertEquals('Dr. Rajesh Varma Updated', $owner->name);
+            $this->assertEquals('+91 99999 77777', $owner->phone);
+            $this->assertEquals('Managing Director & Founder', $owner->designation);
+        } finally {
+            $owner->update([
+                'name' => $origName,
+                'phone' => $origPhone,
+            ]);
+        }
+    }
+
+    /** Test 42: Institute Profile displays interactive Live Document & Brand Proof Studio */
+    public function test_franchise_owner_institute_profile_displays_brand_proof_studio(): void
+    {
+        $owner = User::where('role', 'franchise_owner')->first();
+        $this->actingAs($owner);
+
+        $response = $this->get('/app/apex-institute/institute-profile');
+        $response->assertStatus(200);
+
+        // Asserts Presence of the Live Document Studio elements
+        $response->assertSee('Live Document &amp; Brand Proof Studio', false);
+        $response->assertSee('Official Certificate Proof');
+        $response->assertSee('Student PVC ID Card Proof');
+        $response->assertSee('GST Fee Receipt Proof');
+        $response->assertSee('Certificate of Completion');
+        $response->assertSee('Stamp Seal:');
+        $response->assertSee('Signature:');
+        $response->assertSee('Apex Institute of Information Technology');
+    }
+
+    /** Test 43: Profile photo upload, persistence, and avatar URL resolution across User and Student */
+    public function test_profile_photo_upload_and_filament_avatar_resolution(): void
+    {
+        $user = User::where('email', 'admin@apex-downtown.com')->first();
+        $this->actingAs($user);
+
+        // 1. User getFilamentAvatarUrl contract
+        $origAvatar = $user->avatar;
+        $user->avatar = null;
+        $this->assertNull($user->getFilamentAvatarUrl());
+
+        $user->avatar = 'avatars/my_photo.png';
+        $this->assertStringContainsString('storage/avatars/my_photo.png', $user->getFilamentAvatarUrl());
+
+        // 2. Student photo_url accessor contract
+        $student = Student::first();
+        if ($student) {
+            $origStudentPhoto = $student->photo;
+            $student->photo = null;
+            $this->assertNull($student->photo_url);
+
+            $student->photo = 'student-photos/stu1.png';
+            $this->assertStringContainsString('storage/student-photos/stu1.png', $student->photo_url);
+            $student->photo = $origStudentPhoto;
+            $student->save();
+        }
+
+        // 3. UserProfile Livewire component upload and persistence
+        $franchise = Franchise::where('slug', 'apex-institute')->first();
+        \Filament\Facades\Filament::setCurrentPanel(\Filament\Facades\Filament::getPanel('franchise'));
+        \Filament\Facades\Filament::setTenant($franchise);
+
+        $fakePhoto = \Illuminate\Http\UploadedFile::fake()->image('profile_pic.jpg');
+
+        try {
+            \Livewire\Livewire::test(\App\Filament\Franchise\Pages\UserProfile::class)
+                ->set('data.avatar', [$fakePhoto])
+                ->call('save')
+                ->assertHasNoErrors();
+
+            $user->refresh();
+            $this->assertNotEmpty($user->avatar);
+            $this->assertStringStartsWith('avatars/', $user->avatar);
+        } finally {
+            $user->update(['avatar' => $origAvatar]);
+        }
+    }
 }
+
+
+

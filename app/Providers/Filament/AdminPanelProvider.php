@@ -27,6 +27,7 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login(\App\Filament\Pages\Auth\AdminLogin::class)
+            ->profile(\App\Filament\Pages\Auth\EditProfile::class, isSimple: false)
             ->brandName(fn () => (string) \App\Models\SystemSetting::get('app_name', null, 'Remax') . ' Central')
             ->colors([
                 'primary' => Color::Blue,
